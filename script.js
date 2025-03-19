@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayOfMonth = date.getDate();
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const monthName = monthNames[date.getMonth()];
-        const periodLabel = period === 'evening' ? 'Eve' : 'Mor';
+        const periodLabel = period === 'evening' ? '- Evening' : '- Morning';
         
         // Format like "Mon. 12 Jan Eve"
         return `${dayOfWeek}. ${dayOfMonth} ${monthName} ${periodLabel}`;
