@@ -117,27 +117,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Function to add a booking bar to a row
-    function addBookingBar(booking, row) {
-        const startIndex = findDateIndex(booking.startDate);
-        const endIndex = findDateIndex(booking.endDate);
+    // Extract days and nights calculation into a separate function for consistency
+    function calculateDaysAndNights(startIndex, startPeriod, endIndex, endPeriod) {
+        // Handle edge case where start and end are the same
+        if (startIndex === endIndex && startPeriod === endPeriod) {
+            return { days: 0, nights: 0 };
+        }
         
-        if (startIndex === -1 || endIndex === -1) return;
+        // Convert to half-days for calculation
+        const startHalfDays = startIndex * 2 + (startPeriod === 'evening' ? 1 : 0);
+        const endHalfDays = endIndex * 2 + (endPeriod === 'evening' ? 1 : 0);
         
-        // Calculate position based on date and period (morning/evening)
-        const halfCellWidth = getCellWidth() / 2; // Each half (morning/evening) is half the cell width
-        const cellWidth = getCellWidth();
-        const startOffset = startIndex * cellWidth + (booking.startPeriod === 'evening' ? halfCellWidth : 0);
-        const endOffset = endIndex * cellWidth + (booking.endPeriod === 'evening' ? halfCellWidth * 2 : halfCellWidth);
-        const width = endOffset - startOffset;
+        // If end is before start somehow, return zeros
+        if (endHalfDays <= startHalfDays) {
+            return { days: 0, nights: 0 };
+        }
         
         // Calculate days and nights
         let days = 0;
         let nights = 0;
-        
-        // Convert to half-days for easier calculation
-        const startHalfDays = startIndex * 2 + (booking.startPeriod === 'evening' ? 1 : 0);
-        const endHalfDays = endIndex * 2 + (booking.endPeriod === 'evening' ? 1 : 0);
         
         for (let i = startHalfDays; i < endHalfDays; i++) {
             // If i is even (morning) and i+1 is within range, count a day (morning to evening)
@@ -150,6 +148,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 nights++;
             }
         }
+        
+        return { days, nights };
+    }
+
+    // Function to format label text based on days and nights
+    function formatLabelText(days, nights) {
+        let labelText = '';
+        if (days > 0) {
+            labelText += `${days} day${days !== 1 ? 's' : ''}`;
+        }
+        if (days > 0 && nights > 0) {
+            labelText += ', ';
+        }
+        if (nights > 0) {
+            labelText += `${nights} night${nights !== 1 ? 's' : ''}`;
+        }
+        
+        // Only return 'Booking' for very short stays (less than half a day)
+        return labelText || 'Booking';
+    }
+
+    // Function to add a booking bar to a row
+    function addBookingBar(booking, row) {
+        const startIndex = findDateIndex(booking.startDate);
+        const endIndex = findDateIndex(booking.endDate);
+        
+        if (startIndex === -1 || endIndex === -1) return null;
+        
+        // Calculate position based on date and period (morning/evening)
+        const halfCellWidth = getCellWidth() / 2; // Each half (morning/evening) is half the cell width
+        const cellWidth = getCellWidth();
+        const startOffset = startIndex * cellWidth + (booking.startPeriod === 'evening' ? halfCellWidth : 0);
+        const endOffset = endIndex * cellWidth + (booking.endPeriod === 'evening' ? halfCellWidth * 2 : halfCellWidth);
+        const width = endOffset - startOffset;
+        
+        // Use the common calculation function
+        const { days, nights } = calculateDaysAndNights(startIndex, booking.startPeriod, endIndex, booking.endPeriod);
         
         const bar = document.createElement('div');
         bar.className = 'booking-bar';
@@ -164,19 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add the bar label showing days and nights
         const label = document.createElement('span');
-        
-        let labelText = '';
-        if (days > 0) {
-            labelText += `${days} day${days !== 1 ? 's' : ''}`;
-        }
-        if (days > 0 && nights > 0) {
-            labelText += ', ';
-        }
-        if (nights > 0) {
-            labelText += `${nights} night${nights !== 1 ? 's' : ''}`;
-        }
-        
-        label.textContent = labelText || 'Booking';
+        label.textContent = formatLabelText(days, nights);
         bar.appendChild(label);
         
         // Add resize handles
@@ -199,6 +222,9 @@ document.addEventListener('DOMContentLoaded', function() {
         rightHandle.addEventListener('touchstart', handleTouchResizeStart, { passive: false });
         
         row.appendChild(bar);
+        
+        // Return the created bar element
+        return bar;
     }
     
     // Helper function to get the current cell width based on viewport
@@ -300,17 +326,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dayCell) {
             // Find the correct half-day element (morning or evening)
             const targetPeriod = isPeriodEvening ? 'evening' : 'morning';
-            const periodLabel = isPeriodEvening ? 'Eve' : 'Mor';
             
-            // Format the date for tooltip in the same format as the header
+            // Format the date using the shared function
             const date = dates[dayIndex];
-            const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
-            const dayOfMonth = date.getDate();
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const month = monthNames[date.getMonth()];
-            
-            // Format like "Mon. 12 Jan"
-            const tooltipText = `${dayOfWeek}. ${dayOfMonth} ${month} ${periodLabel}`;
+            const tooltipText = formatTooltipDate(date, targetPeriod);
             
             // Update the tooltip content on the active resize handle
             if (resizingElement) {
@@ -455,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Helper function to update label text during resize
+    // Update the label text function during resize
     function updateLabelTextDuringResize(left, right) {
         if (!resizingElement) return;
         
@@ -468,47 +487,30 @@ document.addEventListener('DOMContentLoaded', function() {
         let startPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
         
         let endIndex = Math.floor(right / cellWidth);
-        let endPeriod = (right % cellWidth) <= halfCellWidth ? 'morning' : 'evening';
+        // Fix the endPeriod calculation to handle the boundary case correctly
+        // This is important because when exactly at a half-cell boundary, it should be morning
+        // instead of evening to correctly calculate days and nights
+        let endPeriod;
+        if (right % cellWidth === 0) {
+            // If exactly on a cell boundary, it's morning of the next day
+            endPeriod = 'morning';
+        } else if (right % cellWidth <= halfCellWidth) {
+            endPeriod = 'morning';
+        } else {
+            endPeriod = 'evening';
+        }
         
         // Ensure valid indices
         startIndex = Math.max(0, Math.min(startIndex, dates.length - 1));
         endIndex = Math.max(0, Math.min(endIndex, dates.length - 1));
         
-        // Convert to half-days for calculation
-        const startHalfDays = startIndex * 2 + (startPeriod === 'evening' ? 1 : 0);
-        const endHalfDays = endIndex * 2 + (endPeriod === 'evening' ? 1 : 0);
-        
-        // Calculate days and nights
-        let days = 0;
-        let nights = 0;
-        
-        for (let i = startHalfDays; i < endHalfDays; i++) {
-            // If i is even (morning) and i+1 is within range, count a day (morning to evening)
-            if (i % 2 === 0 && i + 1 <= endHalfDays) {
-                days++;
-            }
-            
-            // If i is odd (evening) and i+1 is within range, count a night (evening to morning)
-            if (i % 2 === 1 && i + 1 <= endHalfDays) {
-                nights++;
-            }
-        }
+        // Use the common calculation function
+        const { days, nights } = calculateDaysAndNights(startIndex, startPeriod, endIndex, endPeriod);
         
         // Update the label text
         const label = resizingElement.querySelector('span');
         if (label) {
-            let labelText = '';
-            if (days > 0) {
-                labelText += `${days} day${days !== 1 ? 's' : ''}`;
-            }
-            if (days > 0 && nights > 0) {
-                labelText += ', ';
-            }
-            if (nights > 0) {
-                labelText += `${nights} night${nights !== 1 ? 's' : ''}`;
-            }
-            
-            label.textContent = labelText || 'Booking';
+            label.textContent = formatLabelText(days, nights);
             
             // Also update the label position to ensure it stays visible
             updateLabelPositionDuringResize(label);
@@ -524,10 +526,36 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure the label doesn't exceed bar width
         label.style.maxWidth = `${barWidth - 20}px`;
         
+        // Make the label text fully visible or just show 'Booking' for very small widths
+        if (barWidth < 60) {
+            // For very small widths, we'll use a simplified label
+            const daysNightsText = label.textContent;
+            if (daysNightsText !== 'Booking') {
+                label.dataset.fullText = daysNightsText; // Store full text
+                label.textContent = 'Booking';
+            }
+        } else if (label.dataset.fullText) {
+            // Restore the full text when there's enough space
+            label.textContent = label.dataset.fullText;
+            delete label.dataset.fullText;
+        }
+        
         // Make sure the text has appropriate boundaries
         label.style.width = 'auto';
         label.style.left = '10px';
         label.style.right = '10px';
+    }
+    
+    // Create a reusable function for formatting dates in tooltips
+    function formatTooltipDate(date, period) {
+        const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+        const dayOfMonth = date.getDate();
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = monthNames[date.getMonth()];
+        const periodLabel = period === 'evening' ? 'Eve' : 'Mor';
+        
+        // Format like "Mon. 12 Jan Eve"
+        return `${dayOfWeek}. ${dayOfMonth} ${month} ${periodLabel}`;
     }
     
     // Helper function to clear all highlights
@@ -562,7 +590,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Clear any target highlights
         clearTargetHighlights();
         
-        updateBookingAfterResize();
+        // Visually update the booking bar first, without actually changing the data
+        const row = resizingElement.closest('.chart-row');
+        const bookingId = parseInt(resizingElement.dataset.bookingId);
+        const booking = bookings.find(b => b.id === bookingId);
+        
+        if (booking) {
+            // Continue with updateBookingAfterResize logic
+            updateBookingAfterResize();
+        }
         
         // Clean up mouse events
         document.removeEventListener('mousemove', handleResizeMove);
@@ -590,7 +626,14 @@ document.addEventListener('DOMContentLoaded', function() {
             overlay.remove();
         }
         
-        updateBookingAfterResize();
+        // Visually update the booking bar first
+        const row = resizingElement.closest('.chart-row');
+        const bookingId = parseInt(resizingElement.dataset.bookingId);
+        const booking = bookings.find(b => b.id === bookingId);
+        
+        if (booking) {
+            updateBookingAfterResize();
+        }
         
         // Clean up touch events
         document.removeEventListener('touchmove', handleTouchResizeMove);
@@ -619,22 +662,298 @@ document.addEventListener('DOMContentLoaded', function() {
             let newStartPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
             
             let newEndIndex = Math.floor(right / cellWidth);
-            let newEndPeriod = (right % cellWidth) <= halfCellWidth ? 'morning' : 'evening';
+            // Use the same endPeriod calculation as updateLabelTextDuringResize
+            let newEndPeriod;
+            if (right % cellWidth === 0) {
+                // If exactly on a cell boundary, it's morning of the next day
+                newEndPeriod = 'morning';
+            } else if (right % cellWidth <= halfCellWidth) {
+                newEndPeriod = 'morning';
+            } else {
+                newEndPeriod = 'evening';
+            }
             
             // Ensure valid indices
             newStartIndex = Math.max(0, Math.min(newStartIndex, dates.length - 1));
             newEndIndex = Math.max(0, Math.min(newEndIndex, dates.length - 1));
             
-            // Update booking data
+            // Store original booking data for potential restore
+            const originalBooking = { ...booking };
+            
+            // Apply visual changes to the booking bar (without committing to data yet)
             booking.startDate = formatDate(dates[newStartIndex]);
             booking.startPeriod = newStartPeriod;
             booking.endDate = formatDate(dates[newEndIndex]);
             booking.endPeriod = newEndPeriod;
             
-            // Remove old bar and add updated one
+            // Remove old bar and add updated one for visual feedback
             resizingElement.remove();
-            addBookingBar(booking, row);
+            const newBar = addBookingBar(booking, row);
+            
+            // Now show the confirmation snackbar
+            showSnackbarModal(booking, originalBooking, row, newBar);
         }
+    }
+    
+    // Snackbar modal functionality
+    function showSnackbarModal(tempBooking, originalBooking, row, barElement) {
+        const modal = document.getElementById('snackbar-modal');
+        const overlay = document.getElementById('modal-overlay');
+        const dateDisplay = document.getElementById('date-display');
+        const snackbarTitle = document.getElementById('snackbar-title');
+        const approveBtn = document.getElementById('approve-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        
+        // Format the date using the same formatting we use for tooltips
+        const { days, nights } = calculateDaysAndNights(
+            findDateIndex(tempBooking.startDate), 
+            tempBooking.startPeriod, 
+            findDateIndex(tempBooking.endDate), 
+            tempBooking.endPeriod
+        );
+        
+        // Get start and end date objects
+        const startDateObj = new Date(tempBooking.startDate);
+        const endDateObj = new Date(tempBooking.endDate);
+        
+        // Use the shared tooltip formatting
+        const startDateText = formatTooltipDate(startDateObj, tempBooking.startPeriod);
+        const endDateText = formatTooltipDate(endDateObj, tempBooking.endPeriod);
+        
+        // Determine which handle was dragged
+        const resizeType = document.querySelector('.resize-handle.active')?.classList.contains('left-handle') ? 'left' : 'right';
+        
+        // Store which date is being edited
+        dateDisplay.dataset.editingSide = resizeType === 'left' ? 'start' : 'end';
+        
+        // Show only the specific date that was changed
+        if (dateDisplay.dataset.editingSide === 'start') {
+            dateDisplay.textContent = startDateText;
+        } else {
+            dateDisplay.textContent = endDateText;
+        }
+        
+        // Get the dog name from the row
+        const dogId = row.dataset.dogId;
+        const dogElement = document.querySelector(`.dog-row[data-dog-id="${dogId}"]`);
+        const dogName = dogElement ? dogElement.textContent.trim() : `Dog #${dogId}`;
+        
+        // Set the title with the dog name and check-in/out text
+        const actionType = dateDisplay.dataset.editingSide === 'start' ? 'Check in' : 'Check out';
+        snackbarTitle.textContent = `${dogName} - ${actionType}`;
+        
+        // Store the date information for the date picker
+        dateDisplay.dataset.startDate = tempBooking.startDate;
+        dateDisplay.dataset.startPeriod = tempBooking.startPeriod;
+        dateDisplay.dataset.endDate = tempBooking.endDate;
+        dateDisplay.dataset.endPeriod = tempBooking.endPeriod;
+        dateDisplay.dataset.originalStartDate = originalBooking.startDate;
+        dateDisplay.dataset.originalStartPeriod = originalBooking.startPeriod;
+        dateDisplay.dataset.originalEndDate = originalBooking.endDate;
+        dateDisplay.dataset.originalEndPeriod = originalBooking.endPeriod;
+        
+        // Show the modal
+        modal.style.display = 'flex';
+        overlay.style.display = 'block';
+        
+        // Attach event listeners
+        approveBtn.onclick = function() {
+            // Changes are already applied visually and to the data
+            // Just hide the modal
+            hideSnackbarModal();
+        };
+        
+        cancelBtn.onclick = function() {
+            // Revert to original booking data
+            Object.assign(tempBooking, originalBooking);
+            
+            // Remove the current bar
+            if (barElement) {
+                barElement.remove();
+            } else {
+                const existingBar = row.querySelector(`.booking-bar[data-booking-id="${originalBooking.id}"]`);
+                if (existingBar) {
+                    existingBar.remove();
+                }
+            }
+            
+            // Add original bar back
+            addBookingBar(originalBooking, row);
+            
+            // Hide the modal
+            hideSnackbarModal();
+        };
+        
+        // Date picker functionality
+        dateDisplay.onclick = function() {
+            // Show date picker above the snackbar
+            showDatePicker(this, tempBooking, row);
+        };
+    }
+    
+    function showDatePicker(dateElement, booking, row) {
+        const datePicker = document.getElementById('date-picker');
+        const datePickerGrid = document.getElementById('date-picker-grid');
+        const datePickerClose = document.getElementById('date-picker-close');
+        const editingSide = dateElement.dataset.editingSide; // 'start' or 'end'
+        
+        // Position the date picker over the date display
+        datePicker.style.display = 'block';
+        
+        // Get current date being edited
+        const currentDate = new Date(editingSide === 'start' ? 
+            dateElement.dataset.startDate : 
+            dateElement.dataset.endDate);
+        
+        // Get current period
+        const currentPeriod = editingSide === 'start' ? 
+            dateElement.dataset.startPeriod : 
+            dateElement.dataset.endPeriod;
+        
+        // Update period selection
+        const periodOptions = document.querySelectorAll('.period-option');
+        periodOptions.forEach(option => {
+            if (option.dataset.period === currentPeriod) {
+                option.classList.add('selected');
+            } else {
+                option.classList.remove('selected');
+            }
+            
+            // Add click event to period options
+            option.onclick = function() {
+                // Remove selected class from all options
+                periodOptions.forEach(opt => opt.classList.remove('selected'));
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                
+                // Update the booking period
+                if (editingSide === 'start') {
+                    booking.startPeriod = this.dataset.period;
+                } else {
+                    booking.endPeriod = this.dataset.period;
+                }
+                
+                // Update the date display
+                const dateObj = new Date(editingSide === 'start' ? booking.startDate : booking.endDate);
+                dateElement.textContent = formatTooltipDate(dateObj, this.dataset.period);
+                
+                // Recreate the booking bar with updated data
+                updateBookingBarWithNewDates(booking, row);
+            };
+        });
+        
+        // Clear existing grid
+        datePickerGrid.innerHTML = '';
+        
+        // Generate calendar for the current month
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        // Create month header
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                            'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        // Add day headers (S M T W T F S)
+        const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+        dayHeaders.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'date-picker-day';
+            dayHeader.textContent = day;
+            dayHeader.style.fontWeight = 'bold';
+            dayHeader.style.color = '#6c757d';
+            datePickerGrid.appendChild(dayHeader);
+        });
+        
+        // Get first day of the month
+        const firstDay = new Date(year, month, 1).getDay();
+        
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < firstDay; i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'date-picker-day';
+            datePickerGrid.appendChild(emptyDay);
+        }
+        
+        // Get number of days in the month
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Add days of the month
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'date-picker-day';
+            dayElement.textContent = i;
+            
+            // Highlight the current date
+            if (i === currentDate.getDate()) {
+                dayElement.classList.add('selected');
+            }
+            
+            // Add click event to select a date
+            dayElement.onclick = function() {
+                // Remove selected class from all days
+                document.querySelectorAll('.date-picker-day').forEach(day => {
+                    if (day.textContent && !isNaN(parseInt(day.textContent))) {
+                        day.classList.remove('selected');
+                    }
+                });
+                
+                // Add selected class to clicked day
+                this.classList.add('selected');
+                
+                // Update the booking date
+                const newDate = new Date(year, month, parseInt(this.textContent));
+                const formattedDate = formatDate(newDate);
+                
+                if (editingSide === 'start') {
+                    booking.startDate = formattedDate;
+                } else {
+                    booking.endDate = formattedDate;
+                }
+                
+                // Update the date display
+                const selectedPeriod = document.querySelector('.period-option.selected').dataset.period;
+                dateElement.textContent = formatTooltipDate(newDate, selectedPeriod);
+                
+                // Recreate the booking bar with updated data
+                updateBookingBarWithNewDates(booking, row);
+            };
+            
+            datePickerGrid.appendChild(dayElement);
+        }
+        
+        // Close button functionality
+        datePickerClose.onclick = function() {
+            datePicker.style.display = 'none';
+        };
+        
+        // Close when clicking outside
+        document.addEventListener('click', function closeOnClickOutside(e) {
+            if (!datePicker.contains(e.target) && e.target !== dateElement) {
+                datePicker.style.display = 'none';
+                document.removeEventListener('click', closeOnClickOutside);
+            }
+        });
+    }
+    
+    function updateBookingBarWithNewDates(booking, row) {
+        // Remove existing bar
+        const existingBar = row.querySelector(`.booking-bar[data-booking-id="${booking.id}"]`);
+        if (existingBar) {
+            existingBar.remove();
+        }
+        
+        // Add updated bar
+        addBookingBar(booking, row);
+    }
+    
+    function hideSnackbarModal() {
+        const modal = document.getElementById('snackbar-modal');
+        const overlay = document.getElementById('modal-overlay');
+        const datePicker = document.getElementById('date-picker');
+        
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+        datePicker.style.display = 'none';
     }
     
     // Initialize the chart
@@ -669,6 +988,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             } else {
                 label.style.display = 'block';
+            }
+            
+            // Make the label text fully visible or just show 'Booking' for very small widths
+            if (barWidth < 60 && label.textContent !== 'Booking') {
+                // For very small widths, we'll use a simplified label
+                label.dataset.fullText = label.textContent; // Store full text
+                label.textContent = 'Booking';
+            } else if (barWidth >= 60 && label.dataset.fullText) {
+                // Restore the full text when there's enough space
+                label.textContent = label.dataset.fullText;
+                delete label.dataset.fullText;
             }
             
             // If bar starts before the dogs column edge
