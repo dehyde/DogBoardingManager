@@ -350,15 +350,24 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (resizeType === 'right') {
             // Resizing from right - adjust width
-            const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
+            const cellWidth = getCellWidth();
+            const minimumWidth = cellWidth / 2; // Changed from full cell to half cell to match touch behavior
+            
+            const newWidth = Math.max(minimumWidth, initialWidth + deltaX);
             resizingElement.style.width = `${newWidth}px`;
             
             // Highlight target position in days header
             const right = initialLeft + newWidth;
             highlightTargetPosition(right);
+            
+            // Update the label text in real-time
+            updateLabelTextDuringResize(initialLeft, right);
         } else {
             // Resizing from left - adjust left position and width
-            const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
+            const cellWidth = getCellWidth();
+            const minimumWidth = cellWidth / 2; // Changed to match the right side
+            
+            const maxDelta = initialWidth - minimumWidth; // Ensure minimum width of half a cell
             const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
             
             const newLeft = initialLeft + boundedDeltaX;
@@ -367,6 +376,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Highlight target position in days header
             highlightTargetPosition(newLeft);
+            
+            // Update the label text in real-time
+            updateLabelTextDuringResize(newLeft, initialLeft + initialWidth - boundedDeltaX);
         }
     }
     
@@ -379,9 +391,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const touch = e.touches[0];
         const deltaX = touch.clientX - initialClientX;
         
-        // Debugging feedback to help user
-        // console.log('Touch move delta:', deltaX);
-        
         if (resizeType === 'right') {
             // Resizing from right - adjust width
             const newWidth = Math.max(getCellWidth() / 2, initialWidth + deltaX); // Minimum width of half cell
@@ -390,6 +399,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Highlight target position in days header
             const right = initialLeft + newWidth;
             highlightTargetPosition(right);
+            
+            // Update the label text in real-time
+            updateLabelTextDuringResize(initialLeft, right);
         } else {
             // Resizing from left - adjust left position and width
             const maxDelta = initialWidth - (getCellWidth() / 2); // Ensure minimum width of half cell
@@ -401,7 +413,85 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Highlight target position in days header
             highlightTargetPosition(newLeft);
+            
+            // Update the label text in real-time
+            updateLabelTextDuringResize(newLeft, initialLeft + initialWidth - boundedDeltaX);
         }
+    }
+    
+    // Helper function to update label text during resize
+    function updateLabelTextDuringResize(left, right) {
+        if (!resizingElement) return;
+        
+        // Calculate days and nights based on current position
+        const cellWidth = getCellWidth();
+        const halfCellWidth = cellWidth / 2;
+        
+        // Calculate indices and periods based on pixel position
+        let startIndex = Math.floor(left / cellWidth);
+        let startPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
+        
+        let endIndex = Math.floor(right / cellWidth);
+        let endPeriod = (right % cellWidth) <= halfCellWidth ? 'morning' : 'evening';
+        
+        // Ensure valid indices
+        startIndex = Math.max(0, Math.min(startIndex, dates.length - 1));
+        endIndex = Math.max(0, Math.min(endIndex, dates.length - 1));
+        
+        // Convert to half-days for calculation
+        const startHalfDays = startIndex * 2 + (startPeriod === 'evening' ? 1 : 0);
+        const endHalfDays = endIndex * 2 + (endPeriod === 'evening' ? 1 : 0);
+        
+        // Calculate days and nights
+        let days = 0;
+        let nights = 0;
+        
+        for (let i = startHalfDays; i < endHalfDays; i++) {
+            // If i is even (morning) and i+1 is within range, count a day (morning to evening)
+            if (i % 2 === 0 && i + 1 <= endHalfDays) {
+                days++;
+            }
+            
+            // If i is odd (evening) and i+1 is within range, count a night (evening to morning)
+            if (i % 2 === 1 && i + 1 <= endHalfDays) {
+                nights++;
+            }
+        }
+        
+        // Update the label text
+        const label = resizingElement.querySelector('span');
+        if (label) {
+            let labelText = '';
+            if (days > 0) {
+                labelText += `${days} day${days !== 1 ? 's' : ''}`;
+            }
+            if (days > 0 && nights > 0) {
+                labelText += ', ';
+            }
+            if (nights > 0) {
+                labelText += `${nights} night${nights !== 1 ? 's' : ''}`;
+            }
+            
+            label.textContent = labelText || 'Booking';
+            
+            // Also update the label position to ensure it stays visible
+            updateLabelPositionDuringResize(label);
+        }
+    }
+    
+    // Helper function to ensure label stays properly positioned during resize
+    function updateLabelPositionDuringResize(label) {
+        if (!label || !resizingElement) return;
+        
+        const barWidth = parseInt(resizingElement.style.width);
+        
+        // Ensure the label doesn't exceed bar width
+        label.style.maxWidth = `${barWidth - 20}px`;
+        
+        // Make sure the text has appropriate boundaries
+        label.style.width = 'auto';
+        label.style.left = '10px';
+        label.style.right = '10px';
     }
     
     // Helper function to clear all highlights

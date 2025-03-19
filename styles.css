@@ -245,7 +245,7 @@ body {
 
 .booking-bar span {
     pointer-events: none;
-    z-index: 2;
+    z-index: 4;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     white-space: nowrap;
     overflow: hidden;
@@ -253,7 +253,7 @@ body {
     position: absolute;
     left: 10px;
     padding: 0 5px;
-    background-color: inherit;
+    background-color: transparent;
     border-radius: 2px;
     max-width: calc(100% - 20px);
     width: auto;
@@ -268,12 +268,12 @@ body {
     height: 100%;
     background-color: rgba(255, 255, 255, 0.5);
     top: 0;
-    z-index: 2;
+    z-index: 3;
     transition: background-color 0.2s;
 }
 
 .resize-handle:hover, .resize-handle:active {
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
 .resize-handle.left-handle {
@@ -340,14 +340,14 @@ body {
     
     /* Make resize handles bigger for touch */
     .resize-handle {
-        width: 16px;
+        width: 32px;
         background-color: rgba(255, 255, 255, 0.6);
     }
     
     /* Highlight handle when being controlled */
     .resize-handle.active {
-        background-color: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+        background-color: rgba(0, 0, 0, 0.25);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
     }
     
     .booking-bar span {
@@ -401,13 +401,13 @@ body {
     
     /* Make resize handles even bigger for small touch */
     .resize-handle {
-        width: 20px;
+        width: 32px;
         background-color: rgba(255, 255, 255, 0.7);
     }
     
     /* Make active state more prominent on small screens */
     .resize-handle.active {
-        background-color: rgba(255, 255, 255, 1);
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+        background-color: rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     }
 } 
