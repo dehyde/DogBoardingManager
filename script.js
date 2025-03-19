@@ -306,26 +306,41 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.booking-bar').forEach(bar => {
             const barLeftEdge = bar.getBoundingClientRect().left;
             const barRightEdge = bar.getBoundingClientRect().right;
+            const barWidth = bar.offsetWidth;
             const label = bar.querySelector('span');
+            
+            // Calculate the visible portion of the bar
+            const windowWidth = window.innerWidth;
+            const visibleWidth = Math.min(barRightEdge, windowWidth) - Math.max(barLeftEdge, dogsColumnRightEdge);
+            
+            // Hide the label if the visible width is too small to display meaningful text
+            if (visibleWidth < 40) { // 40px is a minimum threshold for displaying text
+                label.style.display = 'none';
+                return;
+            } else {
+                label.style.display = 'block';
+            }
             
             // If bar starts before the dogs column edge
             if (barLeftEdge < dogsColumnRightEdge) {
                 // Stick the label to the dogs column edge
-                label.style.left = `${dogsColumnRightEdge - bar.getBoundingClientRect().left + 5}px`;
+                const newLeftPos = dogsColumnRightEdge - bar.getBoundingClientRect().left + 5;
+                label.style.left = `${newLeftPos}px`;
+                
+                // Adjust max-width to ensure it doesn't exceed the bar's right edge
+                const availableWidth = barWidth - newLeftPos - 10;
+                label.style.maxWidth = availableWidth > 0 ? `${availableWidth}px` : '0';
             } else {
                 // Default position at the left of the bar
                 label.style.left = '10px';
-            }
-            
-            // If the bar is partially visible, adjust max width
-            if (barRightEdge > window.innerWidth) {
-                const visibleWidth = window.innerWidth - barLeftEdge - 10;
-                label.style.maxWidth = visibleWidth > 0 ? `${visibleWidth}px` : '0';
-            } else {
-                // Normal max width calculation
-                const barWidth = bar.offsetWidth;
+                
+                // Ensure label doesn't exceed bar width
                 label.style.maxWidth = `${barWidth - 20}px`;
             }
+            
+            // Make sure the text has a right boundary to prevent it from exceeding the bar
+            label.style.width = 'auto';
+            label.style.right = '10px';
         });
     }
     

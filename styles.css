@@ -247,6 +247,9 @@ body {
     background-color: inherit;
     border-radius: 2px;
     max-width: calc(100% - 20px);
+    width: auto;
+    right: 10px;
+    min-width: 40px; /* Minimum width before hiding */
 }
 
 /* Resize handles */
