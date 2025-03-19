@@ -182,10 +182,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add resize handles
         const leftHandle = document.createElement('div');
         leftHandle.className = 'resize-handle left-handle';
+        leftHandle.setAttribute('data-tooltip', '');
         bar.appendChild(leftHandle);
         
         const rightHandle = document.createElement('div');
         rightHandle.className = 'resize-handle right-handle';
+        rightHandle.setAttribute('data-tooltip', '');
         bar.appendChild(rightHandle);
         
         // Add mouse and touch event listeners
@@ -282,10 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper function to highlight target position in days header
     function highlightTargetPosition(position) {
         // Remove previous highlight if exists
-        if (lastHighlightedElement) {
-            lastHighlightedElement.classList.remove('target-highlight');
-            lastHighlightedElement = null;
-        }
+        clearTargetHighlights();
         
         // Calculate which day and period (morning/evening) based on position
         const cellWidth = getCellWidth();
@@ -301,6 +300,25 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dayCell) {
             // Find the correct half-day element (morning or evening)
             const targetPeriod = isPeriodEvening ? 'evening' : 'morning';
+            const periodLabel = isPeriodEvening ? 'Eve' : 'Mor';
+            
+            // Format the date for tooltip in the same format as the header
+            const date = dates[dayIndex];
+            const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
+            const dayOfMonth = date.getDate();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = monthNames[date.getMonth()];
+            
+            // Format like "Mon. 12 Jan"
+            const tooltipText = `${dayOfWeek}. ${dayOfMonth} ${month} ${periodLabel}`;
+            
+            // Update the tooltip content on the active resize handle
+            if (resizingElement) {
+                const activeHandle = resizingElement.querySelector(resizeType === 'left' ? '.left-handle' : '.right-handle');
+                if (activeHandle) {
+                    activeHandle.setAttribute('data-tooltip', tooltipText);
+                }
+            }
             
             // For date headers, create temporary highlight elements if they don't exist
             if (!dayCell.querySelector('.day-part')) {
@@ -339,6 +357,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (targetDayPart) {
                 targetDayPart.classList.add('target-highlight');
                 lastHighlightedElement = targetDayPart;
+            }
+            
+            // Also highlight the cell part in the chart
+            const dogId = resizingElement?.closest('.chart-row')?.dataset.dogId;
+            if (dogId) {
+                const chartRow = document.querySelector(`.chart-row[data-dog-id="${dogId}"]`);
+                if (chartRow) {
+                    const chartCell = chartRow.children[dayIndex];
+                    if (chartCell) {
+                        const targetCellPart = targetPeriod === 'evening' 
+                            ? chartCell.children[1] 
+                            : chartCell.children[0];
+                        
+                        if (targetCellPart) {
+                            targetCellPart.classList.add('target-highlight');
+                        }
+                    }
+                }
             }
         }
     }
@@ -504,6 +540,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove any temporary day parts containers
         document.querySelectorAll('.day-parts-container').forEach(container => {
             container.remove();
+        });
+        
+        // Clear all cell-part highlights in the chart
+        document.querySelectorAll('.cell-part.target-highlight').forEach(part => {
+            part.classList.remove('target-highlight');
         });
     }
     
