@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Create a function to render the Gantt chart
     function renderGanttChart() {
-        const ganttChart = document.getElementById('gantt-body');
+        const ganttChart = document.getElementById('gantt-chart');
         
         dogs.forEach(dog => {
             const chartRow = document.createElement('div');
