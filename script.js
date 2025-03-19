@@ -10,7 +10,17 @@ document.addEventListener('DOMContentLoaded', function() {
         { id: 7, name: 'באדי' },
         { id: 8, name: 'טוסט' },
         { id: 9, name: 'מילקי' },
-        { id: 10, name: 'אריאנה' }
+        { id: 10, name: 'אריאנה' },
+        { id: 11, name: 'רקסי' },
+        { id: 12, name: 'ג׳ינג׳י' },
+        { id: 13, name: 'בלה' },
+        { id: 14, name: 'מקס' },
+        { id: 15, name: 'ליאו' },
+        { id: 16, name: 'סטלה' },
+        { id: 17, name: 'דיזל' },
+        { id: 18, name: 'לייקה' },
+        { id: 19, name: 'זיו' },
+        { id: 20, name: 'נובה' }
     ];
 
     // Mock bookings (dogId, startDate, period, endDate, period)
@@ -79,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Create a function to render the Gantt chart
     function renderGanttChart() {
-        const ganttChart = document.getElementById('gantt-chart');
+        const ganttChart = document.getElementById('gantt-body');
         
         dogs.forEach(dog => {
             const chartRow = document.createElement('div');
@@ -684,24 +694,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const left = parseInt(resizingElement.style.left);
             const width = parseInt(resizingElement.style.width);
             
-            // For right handle dragging, use the calculated right
-            // For left handle dragging, use the original right to maintain end date
-            let right;
-            if (resizeType === 'left' && resizingElement.dataset.originalRight) {
-                right = parseInt(resizingElement.dataset.originalRight);
-            } else {
-                right = left + width;
-            }
+            // Store original booking data for potential restore
+            const originalBooking = { ...booking };
             
-            // Calculate new dates and periods
+            // Calculate new dates and periods based on resize type
             const cellWidth = getCellWidth();
             const halfCellWidth = cellWidth / 2;
             
+            // Calculate new start position and period
             let newStartIndex = Math.floor(left / cellWidth);
-            // Use the same startPeriod calculation as updateLabelTextDuringResize
             let newStartPeriod;
             if (left % cellWidth === 0) {
-                // If exactly on a cell boundary, it's morning of this day
                 newStartPeriod = 'morning';
             } else if (left % cellWidth < halfCellWidth) {
                 newStartPeriod = 'morning';
@@ -709,24 +712,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 newStartPeriod = 'evening';
             }
             
-            let newEndIndex = Math.floor(right / cellWidth);
-            // Use the same endPeriod calculation as updateLabelTextDuringResize
-            let newEndPeriod;
-            if (right % cellWidth === 0) {
-                // If exactly on a cell boundary, it's morning of the next day
-                newEndPeriod = 'morning';
-            } else if (right % cellWidth <= halfCellWidth) {
-                newEndPeriod = 'morning';
-            } else {
-                newEndPeriod = 'evening';
-            }
-            
-            // Ensure valid indices
+            // Ensure valid index
             newStartIndex = Math.max(0, Math.min(newStartIndex, dates.length - 1));
-            newEndIndex = Math.max(0, Math.min(newEndIndex, dates.length - 1));
             
-            // Store original booking data for potential restore
-            const originalBooking = { ...booking };
+            // For end date/period, preserve the original when resizing left handle
+            let newEndIndex, newEndPeriod;
+            
+            if (resizeType === 'left') {
+                // When resizing left handle, keep the original end date and period
+                newEndIndex = findDateIndex(booking.endDate);
+                newEndPeriod = booking.endPeriod;
+            } else {
+                // When resizing right handle, calculate new end position and period
+                const right = left + width;
+                newEndIndex = Math.floor(right / cellWidth);
+                
+                if (right % cellWidth === 0) {
+                    newEndPeriod = 'morning';
+                } else if (right % cellWidth <= halfCellWidth) {
+                    newEndPeriod = 'morning';
+                } else {
+                    newEndPeriod = 'evening';
+                }
+                
+                // Ensure valid index
+                newEndIndex = Math.max(0, Math.min(newEndIndex, dates.length - 1));
+            }
             
             // Apply visual changes to the booking bar (without committing to data yet)
             booking.startDate = formatDate(dates[newStartIndex]);
@@ -1004,84 +1015,21 @@ document.addEventListener('DOMContentLoaded', function() {
         datePicker.style.display = 'none';
     }
     
-    // Initialize the chart
+    // Initialize the Gantt chart
     renderDaysHeader();
     renderDogNames();
     renderGanttChart();
     
-    // Synchronize horizontal scrolling between header and body
+    // Fix for sticky header on scroll
     const ganttBody = document.querySelector('.gantt-body');
     const daysHeader = document.getElementById('days-header');
-    const dogsColumn = document.querySelector('.dogs-column');
     
-    // Function to update label positions
-    function updateLabelPositions() {
-        // Calculate dogs column right edge position
-        const dogsColumnRightEdge = dogsColumn.getBoundingClientRect().right;
-        
-        // Update all booking bar labels for sticky behavior
-        document.querySelectorAll('.booking-bar').forEach(bar => {
-            const barLeftEdge = bar.getBoundingClientRect().left;
-            const barRightEdge = bar.getBoundingClientRect().right;
-            const barWidth = bar.offsetWidth;
-            const label = bar.querySelector('span');
-            
-            // Calculate the visible portion of the bar
-            const windowWidth = window.innerWidth;
-            const visibleWidth = Math.min(barRightEdge, windowWidth) - Math.max(barLeftEdge, dogsColumnRightEdge);
-            
-            // Hide the label if the visible width is too small to display meaningful text
-            if (visibleWidth < 40) { // 40px is a minimum threshold for displaying text
-                label.style.display = 'none';
-                return;
-            } else {
-                label.style.display = 'block';
-            }
-            
-            // Make the label text fully visible or just show 'Booking' for very small widths
-            if (barWidth < 60 && label.textContent !== 'Booking') {
-                // For very small widths, we'll use a simplified label
-                label.dataset.fullText = label.textContent; // Store full text
-                label.textContent = 'Booking';
-            } else if (barWidth >= 60 && label.dataset.fullText) {
-                // Restore the full text when there's enough space
-                label.textContent = label.dataset.fullText;
-                delete label.dataset.fullText;
-            }
-            
-            // If bar starts before the dogs column edge
-            if (barLeftEdge < dogsColumnRightEdge) {
-                // Stick the label to the dogs column edge
-                const newLeftPos = dogsColumnRightEdge - bar.getBoundingClientRect().left + 5;
-                label.style.left = `${newLeftPos}px`;
-                
-                // Adjust max-width to ensure it doesn't exceed the bar's right edge
-                const availableWidth = barWidth - newLeftPos - 10;
-                label.style.maxWidth = availableWidth > 0 ? `${availableWidth}px` : '0';
-            } else {
-                // Default position at the left of the bar
-                label.style.left = '10px';
-                
-                // Ensure label doesn't exceed bar width
-                label.style.maxWidth = `${barWidth - 20}px`;
-            }
-            
-            // Make sure the text has a right boundary to prevent it from exceeding the bar
-            label.style.width = 'auto';
-            label.style.right = '10px';
-        });
-    }
-    
-    // Update label positions on scroll
+    // Synchronize horizontal scrolling
     ganttBody.addEventListener('scroll', function() {
-        // Sync header scrolling
-        daysHeader.scrollLeft = ganttBody.scrollLeft;
-        
-        // Update label positions
+        daysHeader.style.transform = `translateX(-${ganttBody.scrollLeft}px)`;
         updateLabelPositions();
     });
     
-    // Update labels on initial load and window resize
-    window.addEventListener('load', updateLabelPositions);
+    // Setup resize event listener to handle responsive adjustments
     window.addEventListener('resize', updateLabelPositions);
 }); 

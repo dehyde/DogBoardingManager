@@ -8,6 +8,7 @@ body {
     font-family: Arial, sans-serif;
     line-height: 1.6;
     color: #333;
+    overflow: hidden; /* Prevent body scrolling */
 }
 
 .gantt-container {
@@ -15,16 +16,20 @@ body {
     flex-direction: column;
     width: 100%;
     height: 100vh;
-    overflow: hidden;
+    overflow: hidden; /* Prevent container scrolling */
 }
 
 .gantt-header {
     display: flex;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 20; /* Higher z-index to stay above content */
     background-color: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0; /* Prevent header from shrinking */
+    width: 100%;
+    overflow: hidden; /* Ensure header contents don't bleed out */
 }
 
 .dog-header {
@@ -36,12 +41,14 @@ body {
     background-color: #f8f9fa;
     position: sticky;
     left: 0;
-    z-index: 11;
+    z-index: 21; /* Higher than gantt-header */
 }
 
 .days-header {
     display: flex;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow transform */
+    position: relative;
+    will-change: transform; /* Optimize for transform changes */
 }
 
 .day-cell {
@@ -98,6 +105,7 @@ body {
     overflow: auto;
     flex: 1;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    height: calc(100vh - 41px); /* Adjust height based on header (41px is header height) */
 }
 
 .gantt-body::-webkit-scrollbar {
@@ -442,14 +450,31 @@ body {
     }
     
     .snackbar-btn {
-        width: 48px;
-        height: 48px;
-        border-radius: 6px;
+        width: 64px;
+        height: 64px;
+        border-radius: 8px;
     }
     
     .snackbar-btn::before {
-        width: 24px;
-        height: 24px;
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Larger date picker elements */
+    .date-picker {
+        width: 320px;
+        padding: 15px;
+    }
+    
+    .date-picker-day {
+        width: 38px;
+        height: 38px;
+        font-size: 0.9rem;
+    }
+    
+    .period-option {
+        padding: 10px 14px;
+        font-size: 0.9rem;
     }
 }
 
@@ -519,30 +544,32 @@ body {
     }
     
     .snackbar-btn {
-        width: 55px;
-        height: 55px;
-        border-radius: 8px;
+        width: 75px;
+        height: 75px;
+        border-radius: 10px;
     }
     
     .snackbar-btn::before {
-        width: 28px;
-        height: 28px;
+        width: 38px;
+        height: 38px;
     }
     
     .date-picker {
-        width: 280px;
-        padding: 15px;
+        width: 100%;
+        padding: 18px;
+        left: 0;
+        right: 0;
     }
     
     .date-picker-day {
-        width: 32px;
-        height: 32px;
-        font-size: 0.9rem;
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
     }
     
     .period-option {
-        padding: 8px 12px;
-        font-size: 0.9rem;
+        padding: 12px 16px;
+        font-size: 1rem;
     }
 }
 
@@ -638,8 +665,8 @@ body {
 
 .snackbar-btn {
     border: none;
-    width: 36px;
-    height: 36px;
+    width: 50px;
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -647,6 +674,15 @@ body {
     transition: all 0.2s;
     font-size: 0.85rem;
     border-radius: 4px;
+}
+
+.snackbar-btn::before {
+    content: "";
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .approve-btn {
@@ -657,8 +693,8 @@ body {
 .approve-btn::before {
     content: "";
     display: inline-block;
-    width: 18px;
-    height: 18px;
+    width: 25px;
+    height: 25px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
@@ -677,8 +713,8 @@ body {
 .cancel-btn::before {
     content: "";
     display: inline-block;
-    width: 18px;
-    height: 18px;
+    width: 25px;
+    height: 25px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
@@ -698,9 +734,9 @@ body {
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1002;
-    padding: 10px;
+    padding: 12px;
     display: none;
-    width: 240px;
+    width: 280px;
 }
 
 .date-picker-header {
@@ -730,12 +766,12 @@ body {
 }
 
 .date-picker-day {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     cursor: pointer;
     border-radius: 4px;
 }
@@ -761,8 +797,8 @@ body {
 }
 
 .period-option {
-    padding: 4px 8px;
-    font-size: 0.75rem;
+    padding: 6px 10px;
+    font-size: 0.8rem;
     cursor: pointer;
     border-radius: 4px;
     background-color: #f8f9fa;
@@ -779,35 +815,33 @@ body {
 @media (max-width: 480px) {
     .snackbar-modal {
         width: 92%;
-        padding: 8px 10px;
+        padding: 10px 12px;
         bottom: 10px;
-        font-size: 0.8rem;
-        
+        font-size: 0.9rem;
     }
     
     .snackbar-title {
-        font-size: 0.85rem;
-        margin-bottom: 4px;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
     }
     
     .date-display {
-        padding: 5px 8px;
-        font-size: 0.8rem;
+        padding: 6px 10px;
+        font-size: 0.9rem;
     }
     
     .snackbar-btn {
-        width: 32px;
-        height: 32px;
+        width: 45px;
+        height: 45px;
     }
     
     .date-picker {
-        width: 220px;
-        padding: 8px;
+        width: 100%;
+        padding: 10px;
     }
     
     .date-picker-day {
-        width: 26px;
-        height: 26px;
-        font-size: 0.7rem;
+        width: 38px;
+        height: 38px;
     }
 } 
