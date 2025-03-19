@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Daycare Gantt Chart</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="gantt-container">
+        <div class="gantt-header">
+            <div class="dog-header">Dog</div>
+            <div class="days-header" id="days-header">
+                <!-- Days will be dynamically inserted here -->
+            </div>
+        </div>
+        <div class="gantt-body">
+            <div class="dogs-column">
+                <!-- Dog names will be dynamically inserted here -->
+            </div>
+            <div class="gantt-chart" id="gantt-chart">
+                <!-- Gantt chart rows will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instructions tooltip -->
+    <div class="instructions">
+        <p>• Drag the left edge to change the start time</p>
+        <p>• Drag the right edge to change the end time</p>
+        <p>• Day: AM to PM (same day)</p>
+        <p>• Night: PM to AM (overnight)</p>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
