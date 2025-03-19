@@ -423,6 +423,34 @@ body {
         right: auto;
         bottom: 10px;
     }
+    
+    /* Larger snackbar for mobile */
+    .snackbar-modal {
+        padding: 15px 18px;
+        bottom: 25px;
+        font-size: 1rem;
+    }
+    
+    .snackbar-title {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .date-display {
+        padding: 10px 12px;
+        font-size: 1rem;
+    }
+    
+    .snackbar-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+    }
+    
+    .snackbar-btn::before {
+        width: 24px;
+        height: 24px;
+    }
 }
 
 /* Small mobile styles */
@@ -470,6 +498,51 @@ body {
     .resize-handle.active {
         background-color: rgba(0, 0, 0, 0.3);
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Even larger snackbar for small mobile */
+    .snackbar-modal {
+        width: 95%;
+        padding: 18px 20px;
+        bottom: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .snackbar-title {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+    }
+    
+    .date-display {
+        padding: 12px 14px;
+        font-size: 1.1rem;
+    }
+    
+    .snackbar-btn {
+        width: 55px;
+        height: 55px;
+        border-radius: 8px;
+    }
+    
+    .snackbar-btn::before {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .date-picker {
+        width: 280px;
+        padding: 15px;
+    }
+    
+    .date-picker-day {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .period-option {
+        padding: 8px 12px;
+        font-size: 0.9rem;
     }
 }
 

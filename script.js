@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         bar.style.backgroundColor = booking.color;
         bar.style.width = `${width}px`;
         bar.style.left = `${startOffset}px`;
+        bar.dataset.originalRight = `${startOffset + width}`; // Store original right position for left handle resizing
         
         // Add the bar label showing days and nights
         const label = document.createElement('span');
@@ -265,6 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
         initialLeft = parseInt(resizingElement.style.left);
         initialClientX = e.clientX;
         
+        // Make sure originalRight is set for left handle dragging
+        if (resizeType === 'left' && !resizingElement.dataset.originalRight) {
+            resizingElement.dataset.originalRight = `${initialLeft + initialWidth}`;
+        }
+        
         document.addEventListener('mousemove', handleResizeMove);
         document.addEventListener('mouseup', handleResizeEnd);
     }
@@ -289,6 +295,11 @@ document.addEventListener('DOMContentLoaded', function() {
         initialWidth = rect.width;
         initialLeft = parseInt(resizingElement.style.left);
         initialClientX = e.touches[0].clientX;
+        
+        // Make sure originalRight is set for left handle dragging
+        if (resizeType === 'left' && !resizingElement.dataset.originalRight) {
+            resizingElement.dataset.originalRight = `${initialLeft + initialWidth}`;
+        }
         
         // Create a transparent overlay to capture all touch events during resize
         const overlay = document.createElement('div');
@@ -422,18 +433,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const cellWidth = getCellWidth();
             const minimumWidth = cellWidth / 2; // Changed to match the right side
             
-            const maxDelta = initialWidth - minimumWidth; // Ensure minimum width of half a cell
-            const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
+            // Use the original right position stored in the dataset
+            const originalRight = parseInt(resizingElement.dataset.originalRight);
             
-            const newLeft = initialLeft + boundedDeltaX;
+            // Calculate the new left position while ensuring the minimum width
+            const maxLeft = originalRight - cellWidth / 2; // Ensure minimum width
+            const newLeft = Math.min(maxLeft, initialLeft + deltaX);
+            
+            // Set the left position and calculate width to preserve original right boundary
             resizingElement.style.left = `${newLeft}px`;
-            resizingElement.style.width = `${initialWidth - boundedDeltaX}px`;
+            resizingElement.style.width = `${originalRight - newLeft}px`;
             
             // Highlight target position in days header
             highlightTargetPosition(newLeft);
             
-            // Update the label text in real-time
-            updateLabelTextDuringResize(newLeft, initialLeft + initialWidth - boundedDeltaX);
+            // Update the label text in real-time - use exact originalRight value
+            updateLabelTextDuringResize(newLeft, originalRight);
         }
     }
     
@@ -459,18 +474,24 @@ document.addEventListener('DOMContentLoaded', function() {
             updateLabelTextDuringResize(initialLeft, right);
         } else {
             // Resizing from left - adjust left position and width
-            const maxDelta = initialWidth - (getCellWidth() / 2); // Ensure minimum width of half cell
-            const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
+            const cellWidth = getCellWidth();
             
-            const newLeft = initialLeft + boundedDeltaX;
+            // Use the original right position stored in the dataset
+            const originalRight = parseInt(resizingElement.dataset.originalRight);
+            
+            // Calculate the new left position while ensuring the minimum width
+            const maxLeft = originalRight - cellWidth / 2; // Ensure minimum width
+            const newLeft = Math.min(maxLeft, initialLeft + deltaX);
+            
+            // Set the left position and calculate width to preserve original right boundary
             resizingElement.style.left = `${newLeft}px`;
-            resizingElement.style.width = `${initialWidth - boundedDeltaX}px`;
+            resizingElement.style.width = `${originalRight - newLeft}px`;
             
             // Highlight target position in days header
             highlightTargetPosition(newLeft);
             
-            // Update the label text in real-time
-            updateLabelTextDuringResize(newLeft, initialLeft + initialWidth - boundedDeltaX);
+            // Update the label text in real-time - use exact originalRight value
+            updateLabelTextDuringResize(newLeft, originalRight);
         }
     }
     
@@ -484,7 +505,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Calculate indices and periods based on pixel position
         let startIndex = Math.floor(left / cellWidth);
-        let startPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
+        let startPeriod;
+        
+        // Fix the startPeriod calculation to match endPeriod logic
+        if (left % cellWidth === 0) {
+            // If exactly on a cell boundary, it's morning of this day
+            startPeriod = 'morning';
+        } else if (left % cellWidth < halfCellWidth) {
+            startPeriod = 'morning';
+        } else {
+            startPeriod = 'evening';
+        }
         
         let endIndex = Math.floor(right / cellWidth);
         // Fix the endPeriod calculation to handle the boundary case correctly
@@ -652,14 +683,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (booking) {
             const left = parseInt(resizingElement.style.left);
             const width = parseInt(resizingElement.style.width);
-            const right = left + width;
+            
+            // For right handle dragging, use the calculated right
+            // For left handle dragging, use the original right to maintain end date
+            let right;
+            if (resizeType === 'left' && resizingElement.dataset.originalRight) {
+                right = parseInt(resizingElement.dataset.originalRight);
+            } else {
+                right = left + width;
+            }
             
             // Calculate new dates and periods
             const cellWidth = getCellWidth();
             const halfCellWidth = cellWidth / 2;
             
             let newStartIndex = Math.floor(left / cellWidth);
-            let newStartPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
+            // Use the same startPeriod calculation as updateLabelTextDuringResize
+            let newStartPeriod;
+            if (left % cellWidth === 0) {
+                // If exactly on a cell boundary, it's morning of this day
+                newStartPeriod = 'morning';
+            } else if (left % cellWidth < halfCellWidth) {
+                newStartPeriod = 'morning';
+            } else {
+                newStartPeriod = 'evening';
+            }
             
             let newEndIndex = Math.floor(right / cellWidth);
             // Use the same endPeriod calculation as updateLabelTextDuringResize
