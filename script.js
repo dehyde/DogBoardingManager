@@ -592,11 +592,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()];
         const dayOfMonth = date.getDate();
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const month = monthNames[date.getMonth()];
+        const monthName = monthNames[date.getMonth()];
         const periodLabel = period === 'evening' ? 'Eve' : 'Mor';
         
         // Format like "Mon. 12 Jan Eve"
-        return `${dayOfWeek}. ${dayOfMonth} ${month} ${periodLabel}`;
+        return `${dayOfWeek}. ${dayOfMonth} ${monthName} ${periodLabel}`;
     }
     
     // Helper function to clear all highlights
@@ -749,13 +749,13 @@ document.addEventListener('DOMContentLoaded', function() {
             resizingElement.remove();
             const newBar = addBookingBar(booking, row);
             
-            // Now show the confirmation snackbar
-            showSnackbarModal(booking, originalBooking, row, newBar);
+            // Now show the confirmation snackbar - pass the resizeType explicitly
+            showSnackbarModal(booking, originalBooking, row, newBar, resizeType);
         }
     }
     
     // Snackbar modal functionality
-    function showSnackbarModal(tempBooking, originalBooking, row, barElement) {
+    function showSnackbarModal(tempBooking, originalBooking, row, barElement, currentResizeType) {
         const modal = document.getElementById('snackbar-modal');
         const overlay = document.getElementById('modal-overlay');
         const dateDisplay = document.getElementById('date-display');
@@ -771,16 +771,21 @@ document.addEventListener('DOMContentLoaded', function() {
             tempBooking.endPeriod
         );
         
-        // Get start and end date objects
-        const startDateObj = new Date(tempBooking.startDate);
-        const endDateObj = new Date(tempBooking.endDate);
+        // Use the exact same dates from the dates array used in the Gantt chart
+        const startIndex = findDateIndex(tempBooking.startDate);
+        const endIndex = findDateIndex(tempBooking.endDate);
         
-        // Use the shared tooltip formatting
+        // Get the exact dates from the array
+        const startDateObj = dates[startIndex];
+        const endDateObj = dates[endIndex];
+        
+        // Use the shared tooltip formatting with the exact dates from the array
         const startDateText = formatTooltipDate(startDateObj, tempBooking.startPeriod);
         const endDateText = formatTooltipDate(endDateObj, tempBooking.endPeriod);
         
-        // Determine which handle was dragged
-        const resizeType = document.querySelector('.resize-handle.active')?.classList.contains('left-handle') ? 'left' : 'right';
+        // Use the explicitly passed resize type instead of relying on the active class
+        // which might have been removed by this point
+        const resizeType = currentResizeType || 'right'; // Default to right if not specified
         
         // Store which date is being edited
         dateDisplay.dataset.editingSide = resizeType === 'left' ? 'start' : 'end';
@@ -846,28 +851,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Date picker functionality
         dateDisplay.onclick = function() {
             // Show date picker above the snackbar
-            showDatePicker(this, tempBooking, row);
+            showDatePicker(this, tempBooking, row, this.dataset.editingSide);
         };
     }
     
-    function showDatePicker(dateElement, booking, row) {
+    function showDatePicker(dateElement, booking, row, editingSide) {
         const datePicker = document.getElementById('date-picker');
         const datePickerGrid = document.getElementById('date-picker-grid');
         const datePickerClose = document.getElementById('date-picker-close');
-        const editingSide = dateElement.dataset.editingSide; // 'start' or 'end'
+        // Use explicitly passed editingSide or get from dataset
+        editingSide = editingSide || dateElement.dataset.editingSide; // 'start' or 'end'
         
         // Position the date picker over the date display
         datePicker.style.display = 'block';
         
-        // Get current date being edited
-        const currentDate = new Date(editingSide === 'start' ? 
-            dateElement.dataset.startDate : 
-            dateElement.dataset.endDate);
+        // Get current date from the dates array using the index from findDateIndex
+        const dateIndex = findDateIndex(editingSide === 'start' ? booking.startDate : booking.endDate);
+        const currentDate = dates[dateIndex];
         
         // Get current period
         const currentPeriod = editingSide === 'start' ? 
-            dateElement.dataset.startPeriod : 
-            dateElement.dataset.endPeriod;
+            booking.startPeriod : 
+            booking.endPeriod;
         
         // Update period selection
         const periodOptions = document.querySelectorAll('.period-option');
@@ -895,6 +900,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update the date display
                 const dateObj = new Date(editingSide === 'start' ? booking.startDate : booking.endDate);
                 dateElement.textContent = formatTooltipDate(dateObj, this.dataset.period);
+                
+                // Update the snackbar title to match the correct check-in/out state
+                const snackbarTitle = document.getElementById('snackbar-title');
+                const dogId = row.dataset.dogId;
+                const dogElement = document.querySelector(`.dog-row[data-dog-id="${dogId}"]`);
+                const dogName = dogElement ? dogElement.textContent.trim() : `Dog #${dogId}`;
+                const actionType = editingSide === 'start' ? 'Check in' : 'Check out';
+                snackbarTitle.textContent = `${dogName} - ${actionType}`;
                 
                 // Recreate the booking bar with updated data
                 updateBookingBarWithNewDates(booking, row);
@@ -959,22 +972,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add selected class to clicked day
                 this.classList.add('selected');
                 
-                // Update the booking date
+                // Create a date at the beginning of the day to match dates array
                 const newDate = new Date(year, month, parseInt(this.textContent));
-                const formattedDate = formatDate(newDate);
                 
-                if (editingSide === 'start') {
-                    booking.startDate = formattedDate;
-                } else {
-                    booking.endDate = formattedDate;
+                // Find the closest date in our dates array
+                let closestDateIndex = -1;
+                let minDiff = Infinity;
+                
+                dates.forEach((date, index) => {
+                    const diff = Math.abs(date.getTime() - newDate.getTime());
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestDateIndex = index;
+                    }
+                });
+                
+                // Use the found date from our dates array
+                if (closestDateIndex >= 0) {
+                    const matchingDate = dates[closestDateIndex];
+                    const formattedDate = formatDate(matchingDate);
+                    
+                    if (editingSide === 'start') {
+                        booking.startDate = formattedDate;
+                    } else {
+                        booking.endDate = formattedDate;
+                    }
+                    
+                    // Update the date display
+                    const selectedPeriod = document.querySelector('.period-option.selected').dataset.period;
+                    if (editingSide === 'start') {
+                        booking.startPeriod = selectedPeriod;
+                    } else {
+                        booking.endPeriod = selectedPeriod;
+                    }
+                    
+                    dateElement.textContent = formatTooltipDate(matchingDate, selectedPeriod);
+                    
+                    // Update the snackbar title to ensure it stays consistent
+                    const snackbarTitle = document.getElementById('snackbar-title');
+                    const dogId = row.dataset.dogId;
+                    const dogElement = document.querySelector(`.dog-row[data-dog-id="${dogId}"]`);
+                    const dogName = dogElement ? dogElement.textContent.trim() : `Dog #${dogId}`;
+                    const actionType = editingSide === 'start' ? 'Check in' : 'Check out';
+                    snackbarTitle.textContent = `${dogName} - ${actionType}`;
+                    
+                    // Recreate the booking bar with updated data
+                    updateBookingBarWithNewDates(booking, row);
                 }
-                
-                // Update the date display
-                const selectedPeriod = document.querySelector('.period-option.selected').dataset.period;
-                dateElement.textContent = formatTooltipDate(newDate, selectedPeriod);
-                
-                // Recreate the booking bar with updated data
-                updateBookingBarWithNewDates(booking, row);
             };
             
             datePickerGrid.appendChild(dayElement);
