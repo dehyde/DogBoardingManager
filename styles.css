@@ -89,6 +89,7 @@ body {
     display: flex;
     overflow: auto;
     flex: 1;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .gantt-body::-webkit-scrollbar {
@@ -293,4 +294,89 @@ body {
     font-size: 0.9rem;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     z-index: 100;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .dog-header,
+    .dogs-column,
+    .dogs-column .dog-row {
+        min-width: 80px;
+        width: 80px;
+    }
+    
+    .day-cell,
+    .chart-cell {
+        min-width: 70px;
+        width: 70px;
+    }
+    
+    .day-cell.date-header {
+        font-size: 0.8rem;
+        padding: 5px 2px;
+    }
+    
+    .dog-row {
+        font-size: 0.8rem;
+        padding: 5px;
+    }
+    
+    /* Make resize handles bigger for touch */
+    .resize-handle {
+        width: 12px;
+    }
+    
+    .booking-bar span {
+        font-size: 0.7rem;
+    }
+    
+    .instructions {
+        max-width: 90%;
+        font-size: 0.8rem;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        bottom: 10px;
+    }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+    .dog-header,
+    .dogs-column,
+    .dogs-column .dog-row {
+        min-width: 70px;
+        width: 70px;
+    }
+    
+    .day-cell,
+    .chart-cell {
+        min-width: 60px;
+        width: 60px;
+    }
+    
+    .day-cell.date-header {
+        font-size: 0.7rem;
+    }
+    
+    .cell-part:first-child::after,
+    .cell-part:last-child::after {
+        font-size: 0.5rem;
+    }
+    
+    .chart-row,
+    .dog-row {
+        height: 35px;
+        min-height: 35px;
+    }
+    
+    .booking-bar {
+        height: 75%;
+        top: 12.5%;
+    }
+    
+    /* Make resize handles even bigger for small touch */
+    .resize-handle {
+        width: 15px;
+    }
 } 

@@ -1,16 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Mock data
     const dogs = [
-        { id: 1, name: 'Max' },
-        { id: 2, name: 'Bella' },
-        { id: 3, name: 'Charlie' },
-        { id: 4, name: 'Luna' },
-        { id: 5, name: 'Cooper' },
-        { id: 6, name: 'Lucy' },
-        { id: 7, name: 'Buddy' },
-        { id: 8, name: 'Daisy' },
-        { id: 9, name: 'Rocky' },
-        { id: 10, name: 'Molly' }
+        { id: 1, name: '❤️ לולה' },
+        { id: 2, name: 'בני' },
+        { id: 3, name: 'צ׳רלי' },
+        { id: 4, name: 'לונה' },
+        { id: 5, name: 'קופר' },
+        { id: 6, name: 'יוכבד' },
+        { id: 7, name: 'באדי' },
+        { id: 8, name: 'טוסט' },
+        { id: 9, name: 'מילקי' },
+        { id: 10, name: 'אריאנה' }
     ];
 
     // Mock bookings (dogId, startDate, period, endDate, period)
@@ -125,9 +125,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (startIndex === -1 || endIndex === -1) return;
         
         // Calculate position based on date and period (morning/evening)
-        const halfCellWidth = 50; // Each half (morning/evening) is 50px
-        const startOffset = startIndex * 100 + (booking.startPeriod === 'evening' ? halfCellWidth : 0);
-        const endOffset = endIndex * 100 + (booking.endPeriod === 'evening' ? halfCellWidth * 2 : halfCellWidth);
+        const halfCellWidth = getCellWidth() / 2; // Each half (morning/evening) is half the cell width
+        const cellWidth = getCellWidth();
+        const startOffset = startIndex * cellWidth + (booking.startPeriod === 'evening' ? halfCellWidth : 0);
+        const endOffset = endIndex * cellWidth + (booking.endPeriod === 'evening' ? halfCellWidth * 2 : halfCellWidth);
         const width = endOffset - startOffset;
         
         // Calculate days and nights
@@ -187,11 +188,27 @@ document.addEventListener('DOMContentLoaded', function() {
         rightHandle.className = 'resize-handle right-handle';
         bar.appendChild(rightHandle);
         
-        // Add resize event listeners
+        // Add mouse and touch event listeners
         leftHandle.addEventListener('mousedown', handleResizeStart);
         rightHandle.addEventListener('mousedown', handleResizeStart);
         
+        // Add touch events for mobile
+        leftHandle.addEventListener('touchstart', handleTouchResizeStart, { passive: false });
+        rightHandle.addEventListener('touchstart', handleTouchResizeStart, { passive: false });
+        
         row.appendChild(bar);
+    }
+    
+    // Helper function to get the current cell width based on viewport
+    function getCellWidth() {
+        // Check if we're on mobile
+        if (window.innerWidth <= 480) {
+            return 60; // Small mobile
+        } else if (window.innerWidth <= 768) {
+            return 70; // Regular mobile/tablet
+        } else {
+            return 100; // Desktop
+        }
     }
     
     // Resize functionality
@@ -220,6 +237,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('mouseup', handleResizeEnd);
     }
     
+    // Touch version of resize start
+    function handleTouchResizeStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (e.touches.length !== 1) return; // Only handle single touch
+        
+        resizingElement = e.target.parentElement;
+        resizeType = e.target.classList.contains('left-handle') ? 'left' : 'right';
+        
+        // Add resizing class to apply visual effect
+        resizingElement.classList.add('resizing');
+        
+        const rect = resizingElement.getBoundingClientRect();
+        initialWidth = rect.width;
+        initialLeft = parseInt(resizingElement.style.left);
+        initialClientX = e.touches[0].clientX;
+        
+        document.addEventListener('touchmove', handleTouchResizeMove, { passive: false });
+        document.addEventListener('touchend', handleTouchResizeEnd);
+        document.addEventListener('touchcancel', handleTouchResizeEnd);
+    }
+    
     function handleResizeMove(e) {
         if (!resizingElement) return;
         
@@ -227,11 +267,33 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (resizeType === 'right') {
             // Resizing from right - adjust width
-            const newWidth = Math.max(100, initialWidth + deltaX); // Minimum width of 100px (1 day)
+            const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
             resizingElement.style.width = `${newWidth}px`;
         } else {
             // Resizing from left - adjust left position and width
-            const maxDelta = initialWidth - 100; // Ensure minimum width of 100px
+            const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
+            const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
+            
+            resizingElement.style.left = `${initialLeft + boundedDeltaX}px`;
+            resizingElement.style.width = `${initialWidth - boundedDeltaX}px`;
+        }
+    }
+    
+    // Touch version of resize move
+    function handleTouchResizeMove(e) {
+        if (!resizingElement || e.touches.length !== 1) return;
+        
+        e.preventDefault(); // Prevent scrolling while resizing
+        
+        const deltaX = e.touches[0].clientX - initialClientX;
+        
+        if (resizeType === 'right') {
+            // Resizing from right - adjust width
+            const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
+            resizingElement.style.width = `${newWidth}px`;
+        } else {
+            // Resizing from left - adjust left position and width
+            const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
             const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
             
             resizingElement.style.left = `${initialLeft + boundedDeltaX}px`;
@@ -245,6 +307,31 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove resizing class to revert visual effect
         resizingElement.classList.remove('resizing');
         
+        updateBookingAfterResize();
+        
+        // Clean up mouse events
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+        resizingElement = null;
+    }
+    
+    function handleTouchResizeEnd(e) {
+        if (!resizingElement) return;
+        
+        // Remove resizing class to revert visual effect
+        resizingElement.classList.remove('resizing');
+        
+        updateBookingAfterResize();
+        
+        // Clean up touch events
+        document.removeEventListener('touchmove', handleTouchResizeMove);
+        document.removeEventListener('touchend', handleTouchResizeEnd);
+        document.removeEventListener('touchcancel', handleTouchResizeEnd);
+        resizingElement = null;
+    }
+    
+    // Extract the common resize end logic into a separate function
+    function updateBookingAfterResize() {
         // Get row and calculate new dates based on position
         const row = resizingElement.closest('.chart-row');
         const bookingId = parseInt(resizingElement.dataset.bookingId);
@@ -256,9 +343,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const right = left + width;
             
             // Calculate new dates and periods
-            // Each cell is 100px, morning is first 50px, evening is second 50px
-            const cellWidth = 100;
-            const halfCellWidth = 50;
+            const cellWidth = getCellWidth();
+            const halfCellWidth = cellWidth / 2;
             
             let newStartIndex = Math.floor(left / cellWidth);
             let newStartPeriod = (left % cellWidth) < halfCellWidth ? 'morning' : 'evening';
@@ -280,11 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
             resizingElement.remove();
             addBookingBar(booking, row);
         }
-        
-        // Clean up
-        document.removeEventListener('mousemove', handleResizeMove);
-        document.removeEventListener('mouseup', handleResizeEnd);
-        resizingElement = null;
     }
     
     // Initialize the chart
