@@ -61,6 +61,7 @@ body {
     font-weight: bold;
     font-size: 0.9rem;
     background-color: #f8f9fa;
+    position: relative; /* Added for positioning of highlight overlay */
 }
 
 .day-part {
@@ -79,6 +80,13 @@ body {
 
 .day-part.evening {
     background-color: rgba(111, 66, 193, 0.05);
+}
+
+/* Highlight for target cells when dragging */
+.day-part.target-highlight {
+    background-color: rgba(255, 193, 7, 0.3);
+    border: 1px dashed rgba(255, 193, 7, 0.8);
+    z-index: 1;
 }
 
 .day-part:last-child {
@@ -319,11 +327,24 @@ body {
     .dog-row {
         font-size: 0.8rem;
         padding: 5px;
+        height: 50px;
+        min-height: 50px;
+    }
+    
+    .chart-row {
+        height: 50px;
+        min-height: 50px;
     }
     
     /* Make resize handles bigger for touch */
     .resize-handle {
         width: 12px;
+    }
+    
+    /* Highlight handle when being controlled */
+    .resize-handle.active {
+        background-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
     }
     
     .booking-bar span {
@@ -366,8 +387,8 @@ body {
     
     .chart-row,
     .dog-row {
-        height: 35px;
-        min-height: 35px;
+        height: 60px;
+        min-height: 60px;
     }
     
     .booking-bar {
@@ -378,5 +399,11 @@ body {
     /* Make resize handles even bigger for small touch */
     .resize-handle {
         width: 15px;
+    }
+    
+    /* Make active state more prominent on small screens */
+    .resize-handle.active {
+        background-color: rgba(255, 255, 255, 1);
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
     }
 } 

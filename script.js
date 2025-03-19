@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let initialWidth = 0;
     let initialLeft = 0;
     let initialClientX = 0;
+    let lastHighlightedElement = null; // Keep track of last highlighted element
     
     function handleResizeStart(e) {
         e.preventDefault();
@@ -227,6 +228,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Add resizing class to apply visual effect
         resizingElement.classList.add('resizing');
+        
+        // Add active class to the handle
+        e.target.classList.add('active');
         
         const rect = resizingElement.getBoundingClientRect();
         initialWidth = rect.width;
@@ -250,6 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add resizing class to apply visual effect
         resizingElement.classList.add('resizing');
         
+        // Add active class to the handle
+        e.target.classList.add('active');
+        
         const rect = resizingElement.getBoundingClientRect();
         initialWidth = rect.width;
         initialLeft = parseInt(resizingElement.style.left);
@@ -258,6 +265,70 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('touchmove', handleTouchResizeMove, { passive: false });
         document.addEventListener('touchend', handleTouchResizeEnd);
         document.addEventListener('touchcancel', handleTouchResizeEnd);
+    }
+    
+    // Helper function to highlight target position in days header
+    function highlightTargetPosition(position) {
+        // Remove previous highlight if exists
+        if (lastHighlightedElement) {
+            lastHighlightedElement.classList.remove('target-highlight');
+            lastHighlightedElement = null;
+        }
+        
+        // Calculate which day and period (morning/evening) based on position
+        const cellWidth = getCellWidth();
+        const halfCellWidth = cellWidth / 2;
+        
+        const dayIndex = Math.floor(position / cellWidth);
+        const isPeriodEvening = (position % cellWidth) >= halfCellWidth;
+        
+        // Find the corresponding day cell in the header
+        const daysHeader = document.getElementById('days-header');
+        const dayCell = daysHeader.children[dayIndex];
+        
+        if (dayCell) {
+            // Find the correct half-day element (morning or evening)
+            const targetPeriod = isPeriodEvening ? 'evening' : 'morning';
+            
+            // For date headers, create temporary highlight elements if they don't exist
+            if (!dayCell.querySelector('.day-part')) {
+                // Create container for day parts if it doesn't exist
+                if (!dayCell.querySelector('.day-parts-container')) {
+                    const container = document.createElement('div');
+                    container.className = 'day-parts-container';
+                    container.style.position = 'absolute';
+                    container.style.top = '0';
+                    container.style.left = '0';
+                    container.style.width = '100%';
+                    container.style.height = '100%';
+                    container.style.display = 'flex';
+                    container.style.pointerEvents = 'none';
+                    
+                    const morningPart = document.createElement('div');
+                    morningPart.className = 'day-part morning';
+                    morningPart.style.width = '50%';
+                    
+                    const eveningPart = document.createElement('div');
+                    eveningPart.className = 'day-part evening';
+                    eveningPart.style.width = '50%';
+                    
+                    container.appendChild(morningPart);
+                    container.appendChild(eveningPart);
+                    dayCell.appendChild(container);
+                }
+            }
+            
+            // Find the target day part
+            const dayPartsContainer = dayCell.querySelector('.day-parts-container') || dayCell;
+            const targetDayPart = targetPeriod === 'evening' 
+                ? dayPartsContainer.children[1] || dayPartsContainer.querySelector('.evening')
+                : dayPartsContainer.children[0] || dayPartsContainer.querySelector('.morning');
+            
+            if (targetDayPart) {
+                targetDayPart.classList.add('target-highlight');
+                lastHighlightedElement = targetDayPart;
+            }
+        }
     }
     
     function handleResizeMove(e) {
@@ -269,13 +340,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Resizing from right - adjust width
             const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
             resizingElement.style.width = `${newWidth}px`;
+            
+            // Highlight target position in days header
+            const right = initialLeft + newWidth;
+            highlightTargetPosition(right);
         } else {
             // Resizing from left - adjust left position and width
             const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
             const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
             
-            resizingElement.style.left = `${initialLeft + boundedDeltaX}px`;
+            const newLeft = initialLeft + boundedDeltaX;
+            resizingElement.style.left = `${newLeft}px`;
             resizingElement.style.width = `${initialWidth - boundedDeltaX}px`;
+            
+            // Highlight target position in days header
+            highlightTargetPosition(newLeft);
         }
     }
     
@@ -291,14 +370,35 @@ document.addEventListener('DOMContentLoaded', function() {
             // Resizing from right - adjust width
             const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
             resizingElement.style.width = `${newWidth}px`;
+            
+            // Highlight target position in days header
+            const right = initialLeft + newWidth;
+            highlightTargetPosition(right);
         } else {
             // Resizing from left - adjust left position and width
             const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
             const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
             
-            resizingElement.style.left = `${initialLeft + boundedDeltaX}px`;
+            const newLeft = initialLeft + boundedDeltaX;
+            resizingElement.style.left = `${newLeft}px`;
             resizingElement.style.width = `${initialWidth - boundedDeltaX}px`;
+            
+            // Highlight target position in days header
+            highlightTargetPosition(newLeft);
         }
+    }
+    
+    // Helper function to clear all highlights
+    function clearTargetHighlights() {
+        if (lastHighlightedElement) {
+            lastHighlightedElement.classList.remove('target-highlight');
+            lastHighlightedElement = null;
+        }
+        
+        // Remove any temporary day parts containers
+        document.querySelectorAll('.day-parts-container').forEach(container => {
+            container.remove();
+        });
     }
     
     function handleResizeEnd(e) {
@@ -306,6 +406,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Remove resizing class to revert visual effect
         resizingElement.classList.remove('resizing');
+        
+        // Remove active class from the handles
+        resizingElement.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.classList.remove('active');
+        });
+        
+        // Clear any target highlights
+        clearTargetHighlights();
         
         updateBookingAfterResize();
         
@@ -320,6 +428,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Remove resizing class to revert visual effect
         resizingElement.classList.remove('resizing');
+        
+        // Remove active class from the handles
+        resizingElement.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.classList.remove('active');
+        });
+        
+        // Clear any target highlights
+        clearTargetHighlights();
         
         updateBookingAfterResize();
         
