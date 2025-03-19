@@ -262,6 +262,18 @@ document.addEventListener('DOMContentLoaded', function() {
         initialLeft = parseInt(resizingElement.style.left);
         initialClientX = e.touches[0].clientX;
         
+        // Create a transparent overlay to capture all touch events during resize
+        const overlay = document.createElement('div');
+        overlay.id = 'touch-capture-overlay';
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.zIndex = '1000';
+        overlay.style.backgroundColor = 'transparent';
+        document.body.appendChild(overlay);
+        
         document.addEventListener('touchmove', handleTouchResizeMove, { passive: false });
         document.addEventListener('touchend', handleTouchResizeEnd);
         document.addEventListener('touchcancel', handleTouchResizeEnd);
@@ -364,11 +376,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         e.preventDefault(); // Prevent scrolling while resizing
         
-        const deltaX = e.touches[0].clientX - initialClientX;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - initialClientX;
+        
+        // Debugging feedback to help user
+        // console.log('Touch move delta:', deltaX);
         
         if (resizeType === 'right') {
             // Resizing from right - adjust width
-            const newWidth = Math.max(getCellWidth(), initialWidth + deltaX); // Minimum width of 1 cell
+            const newWidth = Math.max(getCellWidth() / 2, initialWidth + deltaX); // Minimum width of half cell
             resizingElement.style.width = `${newWidth}px`;
             
             // Highlight target position in days header
@@ -376,7 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
             highlightTargetPosition(right);
         } else {
             // Resizing from left - adjust left position and width
-            const maxDelta = initialWidth - getCellWidth(); // Ensure minimum width of 1 cell
+            const maxDelta = initialWidth - (getCellWidth() / 2); // Ensure minimum width of half cell
             const boundedDeltaX = Math.min(maxDelta, Math.max(-initialLeft, deltaX));
             
             const newLeft = initialLeft + boundedDeltaX;
@@ -436,6 +452,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear any target highlights
         clearTargetHighlights();
+        
+        // Remove touch capture overlay
+        const overlay = document.getElementById('touch-capture-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
         
         updateBookingAfterResize();
         
