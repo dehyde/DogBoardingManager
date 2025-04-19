@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Test</title>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <button id="test-btn">Test Connection</button>
+    <div id="result" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">Results will appear here...</div>
+
+    <script>
+        // Supabase credentials
+        const SUPABASE_URL = 'https://wzkikplsmgfnrsztlgyw.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6a2lrcGxzbWdmbnJzenRsZ3l3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5MjI0NjgsImV4cCI6MjA2MDQ5ODQ2OH0.eOyQdlXn4BIhj_ugsGv_rUSMonjxkYCG_bOjbQo9Vco';
+
+        // Initialize the Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        document.getElementById('test-btn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing connection...';
+            
+            try {
+                // Test if the dogs table exists
+                const { data: dogs, error: dogsError } = await supabase
+                    .from('dogs')
+                    .select('*')
+                    .limit(10);
+                
+                if (dogsError) {
+                    throw dogsError;
+                }
+                
+                // Test if the bookings table exists
+                const { data: bookings, error: bookingsError } = await supabase
+                    .from('bookings')
+                    .select('*')
+                    .limit(10);
+                
+                if (bookingsError) {
+                    throw bookingsError;
+                }
+                
+                // Output the results
+                resultDiv.innerHTML = `
+                    <h3>Connection successful! ✅</h3>
+                    <p>Dogs found: ${dogs.length}</p>
+                    <p>Bookings found: ${bookings.length}</p>
+                    <h4>Dogs Data:</h4>
+                    <pre>${JSON.stringify(dogs, null, 2)}</pre>
+                    <h4>Bookings Data:</h4>
+                    <pre>${JSON.stringify(bookings, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Connection failed! ❌</h3>
+                    <p>Error: ${error.message}</p>
+                    <pre>${JSON.stringify(error, null, 2)}</pre>
+                `;
+                console.error('Supabase test error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

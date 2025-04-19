@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dog Daycare Gantt Chart</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Configuration must be loaded before other scripts -->
+    <script src="config.js"></script>
+    <!-- Auth0 SDK - Using CDN with specific version -->
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.0.4/auth0-spa-js.production.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading data...</div>
+    </div>
+
+    <div class="gantt-container">
+        <div class="auth-container">
+            <div class="search-container">
+                <input type="text" id="dog-search" class="search-input" placeholder="Search dogs..." aria-label="Search dogs">
+                <button id="clear-search" class="clear-search-btn" aria-label="Clear search">✕</button>
+            </div>
+            <div id="user-display" class="user-display"></div>
+            <button id="login-btn" class="auth-btn login-btn" onclick="auth.login()">Login</button>
+            <button id="logout-btn" class="auth-btn logout-btn" onclick="auth.logout()">Logout</button>
+        </div>
+        
+        <div class="gantt-header">
+            <div class="dog-header">Dog</div>
+            <div class="days-header" id="days-header">
+                <!-- Days will be dynamically inserted here -->
+            </div>
+        </div>
+        <div class="gantt-body" id="gantt-body">
+            <div class="dogs-column">
+                <!-- Dog names will be dynamically inserted here -->
+            </div>
+            <div class="gantt-chart" id="gantt-chart">
+                <!-- Gantt chart rows will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="snackbar-modal" id="snackbar-modal">
+        <div class="snackbar-content">
+            <div class="snackbar-title" id="snackbar-title">Dog Name - Check in</div>
+            <div class="date-buttons-row">
+                <div class="date-display" id="date-display">Select a date</div>
+                <div class="snackbar-buttons">
+                    <button class="snackbar-btn cancel-btn" id="cancel-btn"></button>
+                    <button class="snackbar-btn approve-btn" id="approve-btn"></button>
+                </div>
+            </div>
+            <div class="date-picker" id="date-picker">
+                <div class="date-picker-header">
+                    <div class="date-picker-title">Select Date</div>
+                    <button class="date-picker-close" id="date-picker-close">✕</button>
+                </div>
+                <div class="date-picker-grid" id="date-picker-grid">
+                    <!-- Date grid will be populated by JavaScript -->
+                </div>
+                <div class="date-picker-periods">
+                    <div class="period-option" data-period="morning">Morning</div>
+                    <div class="period-option selected" data-period="evening">Evening</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Booking Detail Modal -->
+    <div class="booking-detail-modal" id="booking-detail-modal">
+        <div class="booking-detail-content">
+            <div class="booking-detail-header">
+                <h2 class="booking-detail-title" id="booking-detail-title">Booking Details</h2>
+                <button class="booking-detail-close" id="booking-detail-close">✕</button>
+            </div>
+            <div class="booking-detail-body">
+                <div class="booking-detail-info">
+                    <h3 id="booking-dog-name">Dog Name</h3>
+                    <div class="booking-detail-dates">
+                        <div class="booking-date-item">
+                            <span class="booking-date-label">Check In:</span>
+                            <span id="booking-start-date">Start Date</span>
+                        </div>
+                        <div class="booking-date-item">
+                            <span class="booking-date-label">Check Out:</span>
+                            <span id="booking-end-date">End Date</span>
+                        </div>
+                        <div class="booking-date-item">
+                            <span class="booking-date-label">Duration:</span>
+                            <span id="booking-duration">Duration</span>
+                        </div>
+                    </div>
+                    <div class="booking-notes-section">
+                        <h4>Notes</h4>
+                        <div id="booking-notes" class="booking-notes">No notes available</div>
+                    </div>
+                </div>
+            </div>
+            <div class="booking-detail-footer">
+                <button class="btn btn-secondary" id="booking-detail-edit">Edit</button>
+                <button class="btn btn-primary" id="booking-detail-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Supabase integration -->
+    <script src="supabase.js"></script>
+    <!-- Auth0 integration -->
+    <script src="auth0.js"></script>
+    <!-- Application logic -->
+    <script src="script.js"></script>
+    
+    <!-- Modern modular version with drag functionality -->
+    <script type="module" src="app.js"></script>
+    
+    <!-- Initialize Auth0 after page load -->
+    <script>
+        window.addEventListener('load', () => {
+            if (window.auth && window.auth.onAuth0Load) {
+                window.auth.onAuth0Load();
+            }
+        });
+    </script>
+</body>
+</html> 

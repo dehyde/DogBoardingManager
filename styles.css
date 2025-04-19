@@ -1,0 +1,1382 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    overflow: hidden; /* Prevent body scrolling */
+}
+
+.gantt-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden; /* Prevent container scrolling */
+}
+
+.gantt-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 20; /* Higher z-index to stay above content */
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0; /* Prevent header from shrinking */
+    width: 100%;
+    overflow: hidden; /* Ensure header contents don't bleed out */
+}
+
+.dog-header {
+    min-width: 100px;
+    width: 100px;
+    padding: 10px;
+    font-weight: bold;
+    border-right: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    position: sticky;
+    left: 0;
+    z-index: 21; /* Higher than gantt-header */
+}
+
+.days-header {
+    display: flex;
+    overflow: visible; /* Changed from hidden to allow transform */
+    position: relative;
+    will-change: transform; /* Optimize for transform changes */
+}
+
+.day-cell {
+    display: flex;
+    min-width: 100px;
+    width: 100px;
+    border-right: 1px solid #dee2e6;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Style for the date header cells */
+.day-cell.date-header {
+    justify-content: center;
+    align-items: center;
+    padding: 10px 5px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    background-color: #f8f9fa;
+    position: relative; /* Added for positioning of highlight overlay */
+}
+
+/* Today's date highlighting */
+.day-cell.today-column {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-left: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+}
+
+.chart-cell.today-column {
+    background-color: rgba(0, 123, 255, 0.02);
+    border-left: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+}
+
+/* Current period highlighting */
+.cell-part.current-period {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-left: 1px dashed #0d6efd !important;
+    border-right: 1px dashed #0d6efd !important;
+    z-index: 0;
+    position: relative;
+    margin-right: -1px; /* Compensate for the border to ensure it's visible */
+}
+
+/* Specific colors for morning/evening periods */
+.cell-part.morning.current-period {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-left: 1px dashed #0d6efd !important;
+    border-right: 1px dashed #0d6efd !important;
+}
+
+.cell-part.evening.current-period {
+    background-color: rgba(111, 66, 193, 0.15);
+    border-left: 1px dashed #6f42c1 !important;
+    border-right: 1px dashed #6f42c1 !important;
+}
+
+.day-part {
+    width: 50%;
+    padding: 5px;
+    border-right: 1px solid #f0f0f0;
+    font-size: 0.7rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.day-part.morning {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.day-part.evening {
+    background-color: rgba(111, 66, 193, 0.05);
+}
+
+/* Highlight for target cells when dragging */
+.day-part.target-highlight {
+    background-color: rgba(255, 193, 7, 0.3);
+    border: 1px dashed rgba(255, 193, 7, 0.8);
+    z-index: 1;
+}
+
+.day-part:last-child {
+    border-right: none;
+}
+
+.gantt-body {
+    display: flex;
+    overflow: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    height: calc(100vh - 41px); /* Adjust height based on header (41px is header height) */
+}
+
+.gantt-body::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.gantt-body::-webkit-scrollbar-thumb {
+    background-color: #c1c1c1;
+    border-radius: 4px;
+}
+
+.gantt-body::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+}
+
+.dogs-column {
+    min-width: 100px;
+    width: 100px;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: #fff;
+    border-right: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.dog-row {
+    height: 60px; /* Increased height to accommodate the chips */
+    min-height: 60px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: flex-start; /* Align to top */
+    overflow: hidden;
+    font-size: 0.8rem;
+}
+
+.dog-info-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 4px;
+}
+
+.dog-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.event-chip {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background-color: #eeeeee;
+    color: #666;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-chip.today {
+    background-color: #d4edda;
+    color: #155724;
+    font-weight: bold;
+}
+
+.event-chip.soon {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.event-chip.upcoming {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.event-chip.ongoing {
+    background-color: #28a745;
+    color: white;
+}
+
+.next-event-indicator {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    border-radius: 3px;
+    background-color: #eeeeee;
+    color: #666;
+    margin-left: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.next-event-indicator.today {
+    background-color: #d4edda;
+    color: #155724;
+    font-weight: bold;
+}
+
+.next-event-indicator.soon {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.next-event-indicator.upcoming {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.gantt-chart {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-row {
+    display: flex;
+    height: 60px;
+    min-height: 60px;
+    border-bottom: 1px solid #dee2e6;
+    position: relative; /* For absolute positioning of bars */
+}
+
+.chart-cell {
+    display: flex;
+    min-width: 100px;
+    width: 100px;
+    border-right: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+/* Add subtle separators to indicate morning/evening within each day */
+.cell-part {
+    width: 50%;
+    height: 100%;
+    border-right: 1px solid rgba(240, 240, 240, 0.5);
+    position: relative;
+}
+
+.cell-part:first-child::after {
+    content: 'AM';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    font-size: 0.6rem;
+    color: #aaa;
+    opacity: 0.6;
+}
+
+.cell-part:last-child::after {
+    content: 'PM';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    font-size: 0.6rem;
+    color: #aaa;
+    opacity: 0.6;
+}
+
+.cell-part.morning {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.cell-part.evening {
+    background-color: rgba(111, 66, 193, 0.05);
+}
+
+.cell-part:last-child {
+    border-right: none;
+}
+
+.booked {
+    background-color: #28a745;
+    color: white;
+}
+
+.booked.morning {
+    background-color: #007bff;
+    color: white;
+}
+
+.booked.evening {
+    background-color: #6f42c1;
+    color: white;
+}
+
+/* Booking bar styles */
+.booking-bar {
+    position: absolute;
+    height: 65%;
+    top: 18%;
+    background-color: #007bff;
+    border-radius: 4px;
+    cursor: move; /* Use move cursor to indicate draggability */
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 0;
+    overflow: visible;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s, transform 0.2s;
+    user-select: none;
+}
+
+/* Apply lifting effect when actively resizing or dragging */
+.booking-bar.resizing {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+    z-index: 3;
+}
+
+.booking-bar span {
+    pointer-events: none;
+    z-index: 4;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: absolute;
+    left: 10px;
+    padding: 0 5px;
+    background-color: transparent;
+    border-radius: 2px;
+    max-width: calc(100% - 20px);
+    width: auto;
+    right: 10px;
+    min-width: 40px; /* Minimum width before hiding */
+}
+
+/* Resize handles */
+.resize-handle {
+    position: absolute;
+    width: 12px;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.5);
+    top: 0;
+    z-index: 3;
+    transition: background-color 0.2s;
+}
+
+/* Tooltip for resize handles */
+.resize-handle::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 100;
+}
+
+/* Show tooltip when handle is active */
+.resize-handle.active::before {
+    visibility: visible;
+    opacity: 1;
+}
+
+.resize-handle:hover, .resize-handle:active {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Darkened cell when being targeted during drag */
+.cell-part.morning.target-highlight {
+    background-color: rgba(0, 123, 255, 0.25);
+}
+
+.cell-part.evening.target-highlight {
+    background-color: rgba(111, 66, 193, 0.25);
+}
+
+/* Darker highlight for day part headers */
+.day-part.morning.target-highlight {
+    background-color: rgba(0, 123, 255, 0.25);
+    border: 1px dashed rgba(0, 123, 255, 0.8);
+    z-index: 1;
+}
+
+.day-part.evening.target-highlight {
+    background-color: rgba(111, 66, 193, 0.25);
+    border: 1px dashed rgba(111, 66, 193, 0.8);
+    z-index: 1;
+}
+
+/* Remove generic target highlight style */
+.cell-part.target-highlight {
+    /* background-color: rgba(0, 0, 0, 0.15); */
+}
+
+.day-part.target-highlight {
+    /* background-color: rgba(255, 193, 7, 0.3);
+    border: 1px dashed rgba(255, 193, 7, 0.8); */
+    z-index: 1;
+}
+
+.resize-handle.left-handle {
+    left: 0;
+    cursor: w-resize;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    border-left: none;
+}
+
+.resize-handle.right-handle {
+    right: 0;
+    cursor: e-resize;
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    border-right: none;
+}
+
+/* Instructions tooltip */
+.instructions {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .dog-header,
+    .dogs-column,
+    .dogs-column .dog-row {
+        min-width: 80px;
+        width: 80px;
+    }
+    
+    .day-cell,
+    .chart-cell {
+        min-width: 70px;
+        width: 70px;
+    }
+    
+    .day-cell.date-header {
+        font-size: 0.8rem;
+        padding: 5px 2px;
+    }
+    
+    .dog-row {
+        font-size: 0.8rem;
+        padding: 5px;
+        height: 50px;
+        min-height: 50px;
+    }
+    
+    /* Make resize handles bigger for touch */
+    .resize-handle {
+        width: 32px;
+        background-color: rgba(255, 255, 255, 0.6);
+    }
+    
+    /* Adjust tooltip position for mobile */
+    .resize-handle::before {
+        top: -35px;
+        font-size: 0.7rem;
+    }
+    
+    /* Highlight handle when being controlled */
+    .resize-handle.active {
+        background-color: rgba(0, 0, 0, 0.25);
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .booking-bar span {
+        font-size: 0.7rem;
+    }
+    
+    .instructions {
+        max-width: 90%;
+        font-size: 0.8rem;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        bottom: 10px;
+    }
+    
+    /* Larger snackbar for mobile */
+    .snackbar-modal {
+        padding: 15px 18px;
+        bottom: 25px;
+        font-size: 1rem;
+    }
+    
+    .snackbar-title {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+    }
+    
+    .date-display {
+        padding: 10px 12px;
+        font-size: 1rem;
+    }
+    
+    .snackbar-btn {
+        width: 64px;
+        height: 64px;
+        border-radius: 8px;
+    }
+    
+    .snackbar-btn::before {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Larger date picker elements */
+    .date-picker {
+        width: 320px;
+        padding: 15px;
+    }
+    
+    .date-picker-day {
+        width: 38px;
+        height: 38px;
+        font-size: 0.9rem;
+    }
+    
+    .period-option {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+    .dog-header,
+    .dogs-column,
+    .dogs-column .dog-row {
+        min-width: 70px;
+        width: 70px;
+    }
+    
+    .day-cell,
+    .chart-cell {
+        min-width: 60px;
+        width: 60px;
+    }
+    
+    .day-cell.date-header {
+        font-size: 0.7rem;
+    }
+    
+    .cell-part:first-child::after,
+    .cell-part:last-child::after {
+        font-size: 0.5rem;
+    }
+    
+    .chart-row,
+    .dog-row {
+        height: 60px;
+        min-height: 60px;
+    }
+    
+    .booking-bar {
+        height: 75%;
+        top: 12.5%;
+    }
+    
+    /* Make resize handles even bigger for small touch */
+    .resize-handle {
+        width: 32px;
+        background-color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Make active state more prominent on small screens */
+    .resize-handle.active {
+        background-color: rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Even larger snackbar for small mobile */
+    .snackbar-modal {
+        width: 95%;
+        padding: 18px 20px;
+        bottom: 15px;
+        font-size: 1.1rem;
+    }
+    
+    .snackbar-title {
+        font-size: 1.2rem;
+        margin-bottom: 12px;
+    }
+    
+    .date-display {
+        padding: 12px 14px;
+        font-size: 1.1rem;
+    }
+    
+    .snackbar-btn {
+        width: 75px;
+        height: 75px;
+        border-radius: 10px;
+    }
+    
+    .snackbar-btn::before {
+        width: 38px;
+        height: 38px;
+    }
+    
+    .date-picker {
+        width: 100%;
+        padding: 18px;
+        left: 0;
+        right: 0;
+    }
+    
+    .date-picker-day {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+    }
+    
+    .period-option {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+}
+
+/* Snackbar Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+}
+
+.snackbar-modal {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 460px;
+    background-color: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: none;
+    flex-direction: column;
+    padding: 10px 14px;
+    z-index: 1001;
+    font-size: 0.85rem;
+}
+
+.snackbar-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.snackbar-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #212529;
+    font-size: 0.9rem;
+}
+
+.date-buttons-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.date-display {
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    font-size: 0.85rem;
+    flex: 1;
+    margin-right: 12px;
+}
+
+.date-display:hover {
+    background-color: #e9ecef;
+}
+
+.date-display::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23333' d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.6;
+}
+
+.snackbar-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.snackbar-btn {
+    border: none;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    border-radius: 4px;
+}
+
+.snackbar-btn::before {
+    content: "";
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.approve-btn {
+    background-color: #007bff;
+    color: white;
+}
+
+.approve-btn::before {
+    content: "";
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.approve-btn:hover {
+    background-color: #0069d9;
+}
+
+.cancel-btn {
+    background-color: white;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.cancel-btn::before {
+    content: "";
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.cancel-btn:hover {
+    background-color: #f8d7da;
+}
+
+/* Date picker styles */
+.date-picker {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1002;
+    padding: 12px;
+    display: none;
+    width: 280px;
+}
+
+.date-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.date-picker-title {
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.date-picker-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.date-picker-day {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.date-picker-day:hover {
+    background-color: #f8f9fa;
+}
+
+.date-picker-day.selected {
+    background-color: #007bff;
+    color: white;
+}
+
+.date-picker-day.disabled {
+    color: #adb5bd;
+    cursor: not-allowed;
+}
+
+.date-picker-periods {
+    display: flex;
+    margin-top: 10px;
+    gap: 8px;
+}
+
+.period-option {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.period-option.selected {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* Mobile adjustments for snackbar */
+@media (max-width: 480px) {
+    .snackbar-modal {
+        width: 92%;
+        padding: 10px 12px;
+        bottom: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .snackbar-title {
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+    }
+    
+    .date-display {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+    
+    .snackbar-btn {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .date-picker {
+        width: 100%;
+        padding: 10px;
+    }
+    
+    .date-picker-day {
+        width: 38px;
+        height: 38px;
+    }
+}
+
+/* Authentication styles */
+.auth-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    z-index: 30;
+}
+
+/* Search Component Styles */
+.search-container {
+    position: relative;
+    margin-right: auto; /* Push to the left side, auth buttons on right */
+    display: flex;
+    align-items: center;
+    max-width: 250px;
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    padding: 6px 30px 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    background-color: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+}
+
+.clear-search-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 0.85rem;
+    color: #adb5bd;
+    cursor: pointer;
+    padding: 0;
+    display: none; /* Hidden by default, shown when input has text */
+}
+
+.clear-search-btn:hover {
+    color: #6c757d;
+}
+
+/* Show clear button when search has content */
+.search-input:not(:placeholder-shown) + .clear-search-btn {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .search-container {
+        max-width: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-container {
+        max-width: 130px;
+    }
+    
+    .search-input {
+        padding: 5px 25px 5px 8px;
+        font-size: 0.8rem;
+    }
+}
+
+.auth-btn {
+    border: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    margin-left: 8px;
+}
+
+.login-btn {
+    background-color: #007bff;
+    color: white;
+}
+
+.login-btn:hover {
+    background-color: #0069d9;
+}
+
+.logout-btn {
+    background-color: #f8f9fa;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    display: none;
+}
+
+.logout-btn:hover {
+    background-color: #f8d7da;
+}
+
+.user-display {
+    display: none;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-right: 8px;
+}
+
+.user-display img.avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    margin-right: 6px;
+    border: 1px solid #dee2e6;
+}
+
+/* Read-only mode indicator */
+.read-only-indicator {
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.read-only-indicator.show {
+    opacity: 1;
+}
+
+/* Loading overlay styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    color: #333;
+    font-weight: 500;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hide loading overlay when not needed */
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Loading state for buttons */
+.snackbar-btn.loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+.snackbar-btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-top: -8px;
+    margin-left: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    animation: button-loading-spinner 0.6s linear infinite;
+}
+
+@keyframes button-loading-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Notification component */
+#notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 500;
+    z-index: 2000;
+    transition: opacity 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-width: 90%;
+    word-break: break-word;
+    opacity: 0;
+}
+
+/* Hide loading overlay when not needed */
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Add styles for booking detail modal */
+.booking-detail-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1001;
+    justify-content: center;
+    align-items: center;
+}
+
+.booking-detail-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.booking-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+}
+
+.booking-detail-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.booking-detail-close {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.booking-detail-close:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.booking-detail-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(90vh - 130px); /* Subtract header and footer height */
+}
+
+.booking-detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.booking-detail-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: #444;
+}
+
+.booking-detail-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.booking-date-item {
+    display: flex;
+    gap: 8px;
+}
+
+.booking-date-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.booking-notes-section {
+    margin-top: 16px;
+}
+
+.booking-notes-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    color: #444;
+}
+
+.booking-notes {
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    min-height: 60px;
+}
+
+.booking-detail-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.btn-primary {
+    background-color: #4a6ee0;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #3d5cce;
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: #e0e0e0;
+}
+
+/* Make the modal responsive for different screen sizes */
+@media (max-width: 768px) {
+    .booking-detail-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .booking-detail-body {
+        max-height: calc(95vh - 130px);
+    }
+}
+
+@media (max-width: 480px) {
+    .booking-detail-content {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    
+    .booking-detail-body {
+        max-height: calc(100vh - 130px);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+} 

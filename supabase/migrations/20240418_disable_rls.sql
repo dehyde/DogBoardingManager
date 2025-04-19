@@ -1,0 +1,3 @@
+-- Temporarily disable Row Level Security
+ALTER TABLE dogs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings DISABLE ROW LEVEL SECURITY; 
