@@ -6,7 +6,7 @@ const appConfig = {
     auth0: {
         domain: 'dev-bnmp6ylfb7d2vk74.us.auth0.com',
         clientId: 'C51pISZzFLhaJxbISNTitr6zVtfHAS7B',
-        redirectUri: 'http://127.0.0.1:3000', // Match the server URL
+        redirectUri: window.location.origin, // This will automatically use the current URL
         audience: 'https://dev-bnmp6ylfb7d2vk74.us.auth0.com/api/v2/', // Using existing Auth0 API
         scope: 'openid profile email offline_access', // Added offline_access for refresh tokens
         cacheLocation: 'localstorage'
